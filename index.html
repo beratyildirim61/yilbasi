@@ -13,17 +13,37 @@
   #gate {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
     padding: 20px 0; overflow-y: auto;
-    background: radial-gradient(ellipse at 50% 45%, #0c172b 0%, #040812 55%, #010206 100%);
+    background: rgba(2, 5, 14, 0.36); backdrop-filter: blur(3px);
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif; z-index: 10;
-    transition: opacity .7s ease;
+    transition: opacity .85s ease;
   }
   #gate.hide { opacity: 0; pointer-events: none; }
   #box {
     width: min(420px, 88vw); padding: 34px 30px 26px; text-align: center; color: #eef3ff;
-    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);
-    border-radius: 18px; backdrop-filter: blur(8px);
-    box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 40px rgba(255,200,90,.08);
+    background: rgba(10, 18, 36, .62); border: 1px solid rgba(255, 224, 150, .2);
+    border-radius: 20px; backdrop-filter: blur(14px);
+    box-shadow: 0 24px 70px rgba(0,0,0,.7), 0 0 50px rgba(255,205,95,.1), inset 0 1px 0 rgba(255,255,255,.12);
   }
+  #hud {
+    position: fixed; top: 18px; right: 18px; z-index: 5; display: flex; gap: 8px;
+    opacity: 0; pointer-events: none; transition: opacity .8s ease;
+  }
+  #hud.show { opacity: 1; pointer-events: auto; }
+  #hud button {
+    padding: 8px 13px; border-radius: 999px; border: 1px solid rgba(255,224,150,.22);
+    background: rgba(8,14,28,.55); color: #f3e9d2; font-size: 13px; cursor: pointer;
+    backdrop-filter: blur(10px); transition: background .2s, transform .15s, border-color .2s;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  #hud button:hover { background: rgba(255,210,115,.16); border-color: rgba(255,224,150,.55); transform: translateY(-1px); }
+  #hint {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 5;
+    padding: 6px 14px; border-radius: 999px; font-size: 12px; letter-spacing: .04em;
+    color: rgba(240,232,212,.78); background: rgba(6,12,24,.45); border: 1px solid rgba(255,255,255,.1);
+    backdrop-filter: blur(8px); pointer-events: none; opacity: 0; transition: opacity 1s ease;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  #hint.show { opacity: 1; }
   #box .icon { font-size: 44px; margin-bottom: 8px; }
   #box h1 { font-size: 20px; font-weight: 600; margin: 0 0 22px; line-height: 1.35; }
   #pw {
@@ -48,7 +68,13 @@
 </style>
 </head>
 <body>
-<canvas id="c" title="Tekrar oynatmak için tıkla"></canvas>
+<canvas id="c"></canvas>
+<div id="hud">
+  <button id="btnMusic" type="button" title="Müzik kutusu">🔊 Müzik</button>
+  <button id="btnFw" type="button" title="Havai fişek gösterisi">🎆 Fişek</button>
+  <button id="btnReplay" type="button" title="Animasyonu baştan oynat">↻ Tekrar</button>
+</div>
+<div id="hint">Gökyüzüne tıkla: havai fişek ✨</div>
 <div id="gate">
   <form id="form" autocomplete="off">
     <div id="box">
@@ -966,91 +992,314 @@
     ctx.restore();
   }
 
+  // --------------------------------------------------- 3B spiral + fişek + ses
+  const orbiters = [];
+  for (let i = 0; i < 44; i++) {
+    orbiters.push({
+      u: i / 44,
+      ang: i * 0.42,
+      sp: rnd(0.55, 0.85),
+      sz: rnd(1.5, 3.2),
+      ph: Math.random() * 6.28,
+      col: i % 5 === 0 ? '255,245,215' : (i % 7 === 0 ? '170,225,255' : '255,208,108')
+    });
+  }
+
+  function drawOrbiters(sec, dt, t, fade, front) {
+    if (!unlocked || t < 4.4) return;
+    const appear = clamp((t - 4.4) / 2.2, 0, 1) * fade;
+    const treeCx = offX + cols * cellW / 2;
+    const scaleY = (rows * cellH) / VH;
+    const scaleX = (cols * cellW) / VW;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const o of orbiters) {
+      if (!front) {
+        o.u = (o.u + dt * 0.055) % 1;
+        o.ang += dt * o.sp * 1.4;
+      }
+      const depth = Math.sin(o.ang);
+      if (front ? depth < 0 : depth >= 0) continue;
+      const vy = BOT - o.u * (BOT - TOP + 20);
+      const rad = (hwAt(clamp(vy, TOP, BOT)) + 26) * scaleX;
+      const x = treeCx + Math.cos(o.ang) * rad;
+      const y = offY + vy * scaleY + depth * 12 * scaleY;
+      const edgeFade = Math.sin(o.u * Math.PI);
+      const tw = 0.55 + 0.45 * Math.sin(sec * 3.5 + o.ph);
+      const a = appear * edgeFade * tw * (front ? 0.85 : 0.35);
+      const r = o.sz * (front ? 1.25 : 0.85);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3.8);
+      g.addColorStop(0, `rgba(${o.col},${a})`);
+      g.addColorStop(0.4, `rgba(${o.col},${a * 0.4})`);
+      g.addColorStop(1, `rgba(${o.col},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, r * 3.8, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  const fireworks = [], fwParticles = [], sparks = [];
+  const FW_PAL = [
+    ['255,220,125', '255,248,210'],
+    ['255,165,180', '255,230,210'],
+    ['150,215,255', '235,248,255'],
+    ['135,240,185', '230,255,240'],
+    ['255,190,110', '255,120,130']
+  ];
+
+  function launchFirework(tx, ty) {
+    const sx = tx + rnd(-60, 60);
+    const sy = H + 10;
+    const dist = Math.hypot(tx - sx, ty - sy);
+    const dur = clamp(dist / 900, 0.45, 0.85);
+    fireworks.push({ sx, sy, tx, ty, x: sx, y: sy, t: 0, dur, pal: pick(FW_PAL), trail: [] });
+  }
+
+  function burstFirework(x, y, pal) {
+    const count = 58;
+    for (let i = 0; i < count; i++) {
+      const a = (Math.PI * 2 * i) / count + rnd(-0.08, 0.08);
+      const sp = rnd(55, 225) * (Math.random() < 0.25 ? 0.55 : 1);
+      fwParticles.push({
+        x, y, px: x, py: y,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        life: 0, max: rnd(1.1, 2.0),
+        col: Math.random() < 0.7 ? pal[0] : pal[1],
+        sz: rnd(1.2, 2.4), glitter: Math.random() < 0.35
+      });
+    }
+    playChime();
+  }
+
+  function updateFireworks(dt, sec) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = fireworks.length - 1; i >= 0; i--) {
+      const f = fireworks[i];
+      f.t += dt;
+      const p = clamp(f.t / f.dur, 0, 1);
+      const ease = 1 - Math.pow(1 - p, 2.4);
+      f.x = f.sx + (f.tx - f.sx) * ease;
+      f.y = f.sy + (f.ty - f.sy) * ease;
+      f.trail.push([f.x, f.y]);
+      if (f.trail.length > 10) f.trail.shift();
+      for (let j = 1; j < f.trail.length; j++) {
+        const a = j / f.trail.length;
+        ctx.strokeStyle = `rgba(${f.pal[0]},${a * 0.75})`;
+        ctx.lineWidth = a * 2.2;
+        ctx.beginPath();
+        ctx.moveTo(f.trail[j - 1][0], f.trail[j - 1][1]);
+        ctx.lineTo(f.trail[j][0], f.trail[j][1]);
+        ctx.stroke();
+      }
+      if (p >= 1) {
+        burstFirework(f.tx, f.ty, f.pal);
+        fireworks.splice(i, 1);
+      }
+    }
+    for (let i = fwParticles.length - 1; i >= 0; i--) {
+      const p = fwParticles[i];
+      p.life += dt;
+      if (p.life >= p.max) { fwParticles.splice(i, 1); continue; }
+      p.px = p.x; p.py = p.y;
+      p.vx *= Math.pow(0.24, dt);
+      p.vy = p.vy * Math.pow(0.24, dt) + 52 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      const k = 1 - p.life / p.max;
+      const flick = p.glitter ? (0.4 + 0.6 * Math.sin(sec * 24 + i)) : 1;
+      const a = k * k * flick;
+      ctx.strokeStyle = `rgba(${p.col},${a * 0.85})`;
+      ctx.lineWidth = p.sz * k;
+      ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.fillStyle = `rgba(255,252,240,${a})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.sz * 0.7 * k, 0, Math.PI * 2); ctx.fill();
+    }
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i];
+      s.life += dt;
+      if (s.life >= s.max) { sparks.splice(i, 1); continue; }
+      s.vx *= Math.pow(0.35, dt);
+      s.vy += 38 * dt;
+      s.x += s.vx * dt; s.y += s.vy * dt;
+      const a = (1 - s.life / s.max);
+      const r = s.sz * a;
+      ctx.fillStyle = `rgba(${s.col},${a * 0.9})`;
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y - r * 2.2); ctx.lineTo(s.x + r * 0.35, s.y - r * 0.35);
+      ctx.lineTo(s.x + r * 2.2, s.y); ctx.lineTo(s.x + r * 0.35, s.y + r * 0.35);
+      ctx.lineTo(s.x, s.y + r * 2.2); ctx.lineTo(s.x - r * 0.35, s.y + r * 0.35);
+      ctx.lineTo(s.x - r * 2.2, s.y); ctx.lineTo(s.x - r * 0.35, s.y - r * 0.35);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function addSparks(x, y, n) {
+    for (let i = 0; i < n; i++) {
+      sparks.push({
+        x: x + rnd(-4, 4), y: y + rnd(-4, 4),
+        vx: rnd(-28, 28), vy: rnd(-35, 10),
+        life: 0, max: rnd(0.45, 0.95),
+        sz: rnd(1.5, 3.2),
+        col: Math.random() < 0.7 ? '255,222,135' : '215,235,255'
+      });
+    }
+    if (sparks.length > 180) sparks.splice(0, sparks.length - 180);
+  }
+
+  // ---- Müzik kutusu (Web Audio API) ----
+  let audioCtx = null, musicOn = false, musicTimer = null, noteIdx = 0;
+  // "We Wish You a Merry Christmas" müzik kutusu dizisi [frekans, vuruş]
+  const MELODY = [
+    [392,1],[523.25,1],[523.25,.5],[587.33,.5],[523.25,.5],[493.88,.5],
+    [440,1],[440,1],[440,1],[587.33,1],[587.33,.5],[659.25,.5],[587.33,.5],[523.25,.5],
+    [493.88,1],[392,1],[392,1],[659.25,1],[659.25,.5],[698.46,.5],[659.25,.5],[587.33,.5],
+    [523.25,1],[440,1],[392,.5],[392,.5],[440,1],[587.33,1],[493.88,1],[523.25,2.2]
+  ];
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function playBell(freq, vol, dur) {
+    if (!audioCtx || !musicOn) return;
+    const now = audioCtx.currentTime;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(vol, now + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    g.connect(audioCtx.destination);
+    const o1 = audioCtx.createOscillator();
+    o1.type = 'sine'; o1.frequency.setValueAtTime(freq, now);
+    const o2 = audioCtx.createOscillator();
+    o2.type = 'triangle'; o2.frequency.setValueAtTime(freq * 2, now);
+    const g2 = audioCtx.createGain(); g2.gain.value = 0.14;
+    o1.connect(g); o2.connect(g2); g2.connect(g);
+    o1.start(now); o2.start(now);
+    o1.stop(now + dur + 0.05); o2.stop(now + dur + 0.05);
+  }
+  function playChime() {
+    if (!audioCtx || !musicOn) return;
+    const base = pick([1046.5, 1174.66, 1318.5, 1567.98]);
+    playBell(base, 0.035, 0.85);
+    setTimeout(() => playBell(base * 1.25, 0.022, 0.7), 65);
+  }
+  function scheduleNote() {
+    if (!musicOn) return;
+    const [f, beats] = MELODY[noteIdx % MELODY.length];
+    noteIdx++;
+    playBell(f, 0.055, 1.35);
+    if (noteIdx % 3 === 1) playBell(f * 0.5, 0.025, 1.8);
+    musicTimer = setTimeout(scheduleNote, beats * 430);
+  }
+  function setMusic(on) {
+    musicOn = on;
+    document.getElementById('btnMusic').textContent = on ? '🔊 Müzik' : '🔇 Sessiz';
+    clearTimeout(musicTimer);
+    if (on) { ensureAudio(); scheduleNote(); }
+  }
+
+  let unlocked = false, finaleFired = false;
+
   // ------------------------------------------------------------------ döngü
   function frame(now) {
-    const t = ((now - start) / 1000) % LOOP;
-    if (t < lastT) buildScene();
-    lastT = t;
+    const dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now;
     const sec = now / 1000;
+    const t = unlocked ? ((now - start) / 1000) % LOOP : 0;
+    if (unlocked && t < lastT) { buildScene(); finaleFired = false; }
+    lastT = t;
 
-    sctx.textBaseline = 'top';
-    sctx.font = `bold ${fs}px Menlo, Consolas, "Courier New", monospace`;
-    for (const cell of cells) {
-      const st = cell.stack;
-      let idx = -1;
-      for (let i = st.length - 1; i >= 0; i--) if (t >= st[i].t0) { idx = i; break; }
-      const e = idx >= 0 ? st[idx] : null;
-      const age = e ? t - e.t0 : 9;
-      const flashing = age < 0.22;
-      let dirty = idx !== cell.cur || flashing || cell.fl || (e && e.tw);
-      if (e && e.flick && Math.random() < 0.0025) { e.ch = pick(RAMP.tree.slice(6)); dirty = true; }
-      if (!dirty) continue;
-      cell.cur = idx; cell.fl = flashing;
-      sctx.clearRect(cell.px, cell.py, cellW + 0.6, cellH + 0.6);
-      if (!e) continue;
-      let fg = e.fg, bg = e.bg;
-      if (e.tw || flashing) {
-        let k = 1.22, kb = 0.26;
-        if (e.tw) { const s = 1 + e.tw * Math.sin(sec * e.sp + e.ph); k *= s; kb *= s; }
-        let r = e.r * k, g = e.g * k, b = e.b * k;
-        if (flashing) {
-          const f = 1 - age / 0.22;
-          r += (255 - r) * f; g += (255 - g) * f; b += (255 - b) * f; kb += 0.4 * f;
+    if (unlocked) {
+      sctx.textBaseline = 'top';
+      sctx.font = `bold ${fs}px Menlo, Consolas, "Courier New", monospace`;
+      for (const cell of cells) {
+        const st = cell.stack;
+        let idx = -1;
+        for (let i = st.length - 1; i >= 0; i--) if (t >= st[i].t0) { idx = i; break; }
+        const e = idx >= 0 ? st[idx] : null;
+        const age = e ? t - e.t0 : 9;
+        const flashing = age < 0.22;
+        let dirty = idx !== cell.cur || flashing || cell.fl || (e && e.tw);
+        if (e && e.flick && Math.random() < 0.0025) { e.ch = pick(RAMP.tree.slice(6)); dirty = true; }
+        if (!dirty) continue;
+        cell.cur = idx; cell.fl = flashing;
+        sctx.clearRect(cell.px, cell.py, cellW + 0.6, cellH + 0.6);
+        if (!e) continue;
+        let fg = e.fg, bg = e.bg;
+        if (e.tw || flashing) {
+          let k = 1.22, kb = 0.26;
+          if (e.tw) { const s = 1 + e.tw * Math.sin(sec * e.sp + e.ph); k *= s; kb *= s; }
+          let r = e.r * k, g = e.g * k, b = e.b * k;
+          if (flashing) {
+            const f = 1 - age / 0.22;
+            r += (255 - r) * f; g += (255 - g) * f; b += (255 - b) * f; kb += 0.4 * f;
+          }
+          fg = `rgb(${clamp(r, 0, 255) | 0},${clamp(g, 0, 255) | 0},${clamp(b, 0, 255) | 0})`;
+          bg = `rgb(${clamp(e.r * kb, 0, 255) | 0},${clamp(e.g * kb, 0, 255) | 0},${clamp(e.b * kb, 0, 255) | 0})`;
         }
-        fg = `rgb(${clamp(r, 0, 255) | 0},${clamp(g, 0, 255) | 0},${clamp(b, 0, 255) | 0})`;
-        bg = `rgb(${clamp(e.r * kb, 0, 255) | 0},${clamp(e.g * kb, 0, 255) | 0},${clamp(e.b * kb, 0, 255) | 0})`;
+        sctx.fillStyle = bg;
+        sctx.fillRect(cell.px, cell.py, cellW + 0.6, cellH + 0.6);
+        sctx.fillStyle = fg;
+        sctx.fillText(e.ch, cell.px, cell.py);
       }
-      sctx.fillStyle = bg;
-      sctx.fillRect(cell.px, cell.py, cellW + 0.6, cellH + 0.6);
-      sctx.fillStyle = fg;
-      sctx.fillText(e.ch, cell.px, cell.py);
+
+      if (!finaleFired && t >= NAME_T) {
+        finaleFired = true;
+        launchFirework(W * 0.24, H * 0.22);
+        setTimeout(() => launchFirework(W * 0.78, H * 0.19), 380);
+        setTimeout(() => launchFirework(W * 0.66, H * 0.28), 820);
+      }
     }
 
     // kompozit + bloom
     let fade = 1;
-    if (t > LOOP - 2.4) fade = clamp((LOOP - 0.7 - t) / 1.7, 0, 1);
+    if (unlocked && t > LOOP - 2.4) fade = clamp((LOOP - 0.7 - t) / 1.7, 0, 1);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    const dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now;
     ctx.drawImage(bgCanvas, 0, 0, W, H);
     drawSkyFx(sec, dt, t, fade);
-    ctx.globalAlpha = fade;
-    ctx.drawImage(scene, 0, 0, W, H);
+    drawOrbiters(sec, dt, t, fade, false);
 
-    const ba = bloomA.getContext('2d'), bb = bloomB.getContext('2d');
-    ba.clearRect(0, 0, bloomA.width, bloomA.height);
-    ba.drawImage(scene, 0, 0, bloomA.width, bloomA.height);
-    bb.clearRect(0, 0, bloomB.width, bloomB.height);
-    bb.drawImage(bloomA, 0, 0, bloomB.width, bloomB.height);
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    ctx.globalAlpha = 0.2 * fade; ctx.drawImage(bloomA, 0, 0, W, H);
-    ctx.globalAlpha = 0.32 * fade; ctx.drawImage(bloomB, 0, 0, W, H);
+    if (unlocked) {
+      ctx.globalAlpha = fade;
+      ctx.drawImage(scene, 0, 0, W, H);
 
-    // yıldız halesi
-    if (t > 4.8) {
-      const gx = offX + cols * cellW / 2, gy = offY + (92 / VH) * rows * cellH;
-      const rr = cols * cellW * (0.09 + 0.01 * Math.sin(sec * 2.2));
-      const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, rr);
-      g.addColorStop(0, 'rgba(255,205,90,.35)'); g.addColorStop(1, 'rgba(255,205,90,0)');
-      ctx.globalAlpha = fade * clamp((t - 4.8) / 0.6, 0, 1);
-      ctx.fillStyle = g; ctx.fillRect(gx - rr, gy - rr, rr * 2, rr * 2);
-      // parıltı ışınları
-      ctx.save(); ctx.translate(gx, gy); ctx.rotate(sec * 0.15);
-      for (let i = 0; i < 8; i++) {
-        const len = rr * (i % 2 ? 0.75 : 1.5) * (0.85 + 0.15 * Math.sin(sec * 3 + i));
-        const lg = ctx.createLinearGradient(0, 0, len, 0);
-        lg.addColorStop(0, 'rgba(255,235,170,.55)'); lg.addColorStop(1, 'rgba(255,235,170,0)');
-        ctx.fillStyle = lg;
-        ctx.beginPath(); ctx.moveTo(0, -1.4); ctx.lineTo(len, 0); ctx.lineTo(0, 1.4); ctx.fill();
-        ctx.rotate(Math.PI / 4);
+      const ba = bloomA.getContext('2d'), bb = bloomB.getContext('2d');
+      ba.clearRect(0, 0, bloomA.width, bloomA.height);
+      ba.drawImage(scene, 0, 0, bloomA.width, bloomA.height);
+      bb.clearRect(0, 0, bloomB.width, bloomB.height);
+      bb.drawImage(bloomA, 0, 0, bloomB.width, bloomB.height);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.globalAlpha = 0.2 * fade; ctx.drawImage(bloomA, 0, 0, W, H);
+      ctx.globalAlpha = 0.32 * fade; ctx.drawImage(bloomB, 0, 0, W, H);
+
+      // yıldız halesi
+      if (t > 4.8) {
+        const gx = offX + cols * cellW / 2, gy = offY + (92 / VH) * rows * cellH;
+        const rr = cols * cellW * (0.09 + 0.01 * Math.sin(sec * 2.2));
+        const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, rr);
+        g.addColorStop(0, 'rgba(255,205,90,.35)'); g.addColorStop(1, 'rgba(255,205,90,0)');
+        ctx.globalAlpha = fade * clamp((t - 4.8) / 0.6, 0, 1);
+        ctx.fillStyle = g; ctx.fillRect(gx - rr, gy - rr, rr * 2, rr * 2);
+        // parıltı ışınları
+        ctx.save(); ctx.translate(gx, gy); ctx.rotate(sec * 0.15);
+        for (let i = 0; i < 8; i++) {
+          const len = rr * (i % 2 ? 0.75 : 1.5) * (0.85 + 0.15 * Math.sin(sec * 3 + i));
+          const lg = ctx.createLinearGradient(0, 0, len, 0);
+          lg.addColorStop(0, 'rgba(255,235,170,.55)'); lg.addColorStop(1, 'rgba(255,235,170,0)');
+          ctx.fillStyle = lg;
+          ctx.beginPath(); ctx.moveTo(0, -1.4); ctx.lineTo(len, 0); ctx.lineTo(0, 1.4); ctx.fill();
+          ctx.rotate(Math.PI / 4);
+        }
+        ctx.restore();
       }
-      ctx.restore();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      drawOrbiters(sec, dt, t, fade, true);
+      drawTitle(t, sec, fade);
     }
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = 1;
 
-    drawTitle(t, sec, fade);
+    updateFireworks(dt, sec);
 
     // kar (derinlikli)
     for (const f of snow) {
@@ -1076,7 +1325,23 @@
 
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(resize, 150); });
-  canvas.addEventListener('click', () => { start = performance.now(); lastT = 0; buildScene(); });
+  canvas.addEventListener('pointermove', e => { if (unlocked) addSparks(e.clientX, e.clientY, 2); });
+  canvas.addEventListener('pointerdown', e => {
+    if (!unlocked) return;
+    addSparks(e.clientX, e.clientY, 12);
+    launchFirework(e.clientX, Math.min(e.clientY, H * 0.68));
+  });
+
+  document.getElementById('btnMusic').addEventListener('click', () => setMusic(!musicOn));
+  document.getElementById('btnFw').addEventListener('click', () => {
+    launchFirework(W * rnd(0.18, 0.35), H * rnd(0.16, 0.32));
+    setTimeout(() => launchFirework(W * rnd(0.65, 0.84), H * rnd(0.14, 0.3)), 280);
+    setTimeout(() => launchFirework(W * rnd(0.4, 0.6), H * rnd(0.12, 0.24)), 560);
+  });
+  document.getElementById('btnReplay').addEventListener('click', () => {
+    start = performance.now(); lastT = 0; finaleFired = false; buildScene();
+  });
+
   // ---- şifre ekranı ----
   const gate = document.getElementById('gate');
   const input = document.getElementById('pw');
@@ -1084,16 +1349,22 @@
   const box = document.getElementById('box');
   const vidWrap = document.getElementById('vidWrap');
   const eslemVid = document.getElementById('eslemVid');
+  const hud = document.getElementById('hud');
+  const hint = document.getElementById('hint');
   function tryUnlock(ev) {
     ev.preventDefault();
     const v = input.value.trim().toLocaleLowerCase('tr-TR');
     if (v === 'berat') {
       eslemVid.pause();
       gate.classList.add('hide');
-      setTimeout(() => gate.remove(), 700);
-      resize();
+      setTimeout(() => gate.remove(), 900);
+      unlocked = true;
+      finaleFired = false;
       start = performance.now() - T_OFFSET * 1000; lastT = 0; lastNow = performance.now();
-      requestAnimationFrame(frame);
+      hud.classList.add('show');
+      hint.classList.add('show');
+      setTimeout(() => hint.classList.remove('show'), 6500);
+      setMusic(true);
     } else if (v === 'eslem') {
       msg.textContent = '';
       vidWrap.classList.add('show');
@@ -1108,6 +1379,8 @@
     }
   }
   document.getElementById('form').addEventListener('submit', tryUnlock);
+  resize();
+  requestAnimationFrame(frame);
   input.focus();
 })();
 </script>
