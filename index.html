@@ -131,21 +131,71 @@
 
   // ---------------------------------------------------------------- çizimler
   function drawGround(c) {
-    // ağaç altı gölge + kar
-    const g = c.createRadialGradient(CXV, 700, 20, CXV, 715, 430);
-    g.addColorStop(0, '#c9d4e6'); g.addColorStop(0.55, '#a9b7cf'); g.addColorStop(1, '#6a7b99');
+    // 1) Dış kenarları arka planla yumuşakça eriyen organik kar birikintisi
+    c.save();
+    c.translate(CXV, 718);
+    c.scale(1, 78 / 455);
+    const g = c.createRadialGradient(0, -10, 30, 0, 0, 455);
+    g.addColorStop(0, 'rgba(218, 228, 244, 0.96)');
+    g.addColorStop(0.45, 'rgba(155, 174, 204, 0.88)');
+    g.addColorStop(0.75, 'rgba(72, 92, 128, 0.55)');
+    g.addColorStop(0.92, 'rgba(24, 38, 66, 0.18)');
+    g.addColorStop(1, 'rgba(10, 18, 36, 0)');
     c.fillStyle = g;
-    c.beginPath(); c.ellipse(CXV, 712, 425, 72, 0, 0, Math.PI * 2); c.fill();
-    for (let i = 0; i < 500; i++) {
-      const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random());
-      const x = CXV + Math.cos(a) * r * 410, y = 712 + Math.sin(a) * r * 66;
-      c.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,.55)' : 'rgba(110,130,165,.35)';
+    c.beginPath(); c.arc(0, 0, 455, 0, Math.PI * 2); c.fill();
+    c.restore();
+
+    // Doğal yan kar tümsekleri (platform hissini kırar)
+    [[-330, 725, 140, 34], [340, 722, 145, 36], [-180, 738, 160, 32], [200, 736, 155, 30]].forEach(([x, y, rx, ry]) => {
+      c.save();
+      c.translate(x, y); c.scale(1, ry / rx);
+      const dg = c.createRadialGradient(0, 0, 0, 0, 0, rx);
+      dg.addColorStop(0, 'rgba(150, 170, 200, 0.45)');
+      dg.addColorStop(0.65, 'rgba(55, 75, 110, 0.22)');
+      dg.addColorStop(1, 'rgba(10, 18, 36, 0)');
+      c.fillStyle = dg;
+      c.beginPath(); c.arc(0, 0, rx, 0, Math.PI * 2); c.fill();
+      c.restore();
+    });
+
+    // Kar dokusu
+    for (let i = 0; i < 420; i++) {
+      const a = Math.random() * Math.PI * 2, r = Math.pow(Math.random(), 0.7);
+      const x = CXV + Math.cos(a) * r * 395, y = 716 + Math.sin(a) * r * 62;
+      const edgeFade = clamp(1 - r, 0.1, 1);
+      c.fillStyle = Math.random() < 0.55 ? `rgba(255,255,255,${0.48 * edgeFade})` : `rgba(85,108,145,${0.32 * edgeFade})`;
       c.beginPath(); c.ellipse(x, y, rnd(4, 14), rnd(2, 4), 0, 0, Math.PI * 2); c.fill();
     }
-    const sh = c.createRadialGradient(CXV, 690, 10, CXV, 690, 300);
-    sh.addColorStop(0, 'rgba(60,80,115,.55)'); sh.addColorStop(1, 'rgba(60,80,115,0)');
+
+    // Ağaç altı temas gölgesi
+    const sh = c.createRadialGradient(CXV, 692, 15, CXV, 692, 290);
+    sh.addColorStop(0, 'rgba(12, 22, 42, 0.68)');
+    sh.addColorStop(0.65, 'rgba(20, 34, 60, 0.28)');
+    sh.addColorStop(1, 'rgba(20, 34, 60, 0)');
     c.fillStyle = sh;
-    c.beginPath(); c.ellipse(CXV, 692, 320, 40, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(CXV, 694, 300, 38, 0, 0, Math.PI * 2); c.fill();
+
+    // Ağaç ışıklarının kara düşen renkli yansımaları (sıcak altın + zümrüt + yakut + safir)
+    const glows = [
+      [CXV, 708, 220, '255, 212, 115', 0.34],
+      [CXV - 140, 712, 130, '95, 220, 130', 0.24],
+      [CXV + 155, 714, 135, '255, 110, 100', 0.24],
+      [CXV + 50, 722, 115, '105, 170, 255', 0.22],
+      [CXV - 260, 710, 110, '185, 130, 255', 0.20]
+    ];
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    glows.forEach(([gx, gy, r, col, a]) => {
+      c.save();
+      c.translate(gx, gy); c.scale(1, 0.28);
+      const rg = c.createRadialGradient(0, 0, 0, 0, 0, r);
+      rg.addColorStop(0, `rgba(${col},${a})`);
+      rg.addColorStop(1, `rgba(${col},0)`);
+      c.fillStyle = rg;
+      c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill();
+      c.restore();
+    });
+    c.restore();
   }
 
   function tierPath(i, N) {
@@ -497,52 +547,102 @@
   }
 
   const GIFTS = [
-    { x: 95,  y: 560, w: 82,  h: 112, d: 26, col: '#6b3cb8', rib: '#f0c040' },
-    { x: 205, y: 625, w: 125, h: 118, d: 30, col: '#2f9440', rib: '#f0c040' },
-    { x: 405, y: 690, w: 100, h: 72,  d: 24, col: '#cf2f2a', rib: '#f0c040' },
-    { x: 585, y: 655, w: 105, h: 105, d: 28, col: '#2c5fd0', rib: '#f0c040' },
-    { x: 760, y: 590, w: 140, h: 112, d: 32, col: '#d4362b', rib: '#f0c040' }
+    { x: 108, y: 552, w: 72,  h: 122, d: 24, col: '#693ab5', rib: '#f5cb5c', rot: -0.065, glow: '255,215,120', snow: true },
+    { x: 204, y: 632, w: 138, h: 106, d: 30, col: '#26853a', rib: '#f2c14e', rot: 0.032,  glow: '255,220,125', snow: true },
+    { x: 382, y: 676, w: 88,  h: 78,  d: 22, col: '#c92a2a', rib: '#ffe38f', rot: -0.045, glow: '255,215,130', snow: false },
+    { x: 472, y: 696, w: 66,  h: 56,  d: 18, col: '#d49a2a', rib: '#c81d25', rot: 0.06,   glow: '255,240,175', snow: false },
+    { x: 566, y: 644, w: 108, h: 112, d: 28, col: '#2458c8', rib: '#f5cb5c', rot: -0.035, glow: '185,220,255', snow: true },
+    { x: 742, y: 586, w: 148, h: 118, d: 34, col: '#b8252a', rib: '#f5cb5c', rot: 0.055,  glow: '255,205,115', snow: true }
   ];
-  const GIFT_ORDER = [1, 0, 3, 2, 4];
+  const GIFT_ORDER = [1, 0, 4, 2, 3, 5];
 
   function drawGift(c, b) {
-    const { x, y, w, h, d, col, rib } = b;
+    const { x, y, w, h, d, col, rib, rot = 0, glow = '255,220,130', snow: hasSnow = false } = b;
     const dx = d * 0.75, dy = d * 0.55;
     c.save();
-    c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 8; c.shadowOffsetY = 5;
+    // kutuyu merkezinden hafifçe eğerek doğal duruş ver
+    const cx = x + w / 2, cy = y + h / 2;
+    c.translate(cx, cy);
+    c.rotate(rot);
+    c.translate(-cx, -cy);
+
+    // yere temas gölgesi
+    c.fillStyle = 'rgba(0,0,0,0.48)';
+    c.beginPath(); c.ellipse(x + w * 0.56, y + h + 4, w * 0.62, 10, 0, 0, Math.PI * 2); c.fill();
+
+    c.save();
+    c.shadowColor = 'rgba(0,0,0,.65)'; c.shadowBlur = 8; c.shadowOffsetY = 5;
     // ön yüz
     const fg = c.createLinearGradient(x, y, x + w, y + h);
-    fg.addColorStop(0, shade(col, 0.18)); fg.addColorStop(1, shade(col, -0.35));
+    fg.addColorStop(0, shade(col, 0.22)); fg.addColorStop(0.55, col); fg.addColorStop(1, shade(col, -0.42));
     c.fillStyle = fg; c.fillRect(x, y, w, h);
     c.restore();
-    // üst yüz
-    c.fillStyle = shade(col, 0.35);
-    c.beginPath(); c.moveTo(x, y); c.lineTo(x + dx, y - dy); c.lineTo(x + w + dx, y - dy); c.lineTo(x + w, y); c.fill();
+
+    // sim / zarif desen detayları (ön yüzde)
+    c.fillStyle = 'rgba(255,245,215,0.22)';
+    for (let s = 0; s < 14; s++) {
+      const sx = x + ((s * 37 + 11) % Math.max(12, Math.floor(w - 10))) + 5;
+      const sy = y + ((s * 53 + 9) % Math.max(12, Math.floor(h - 10))) + 5;
+      c.beginPath(); c.arc(sx, sy, (s % 3) ? 1.8 : 2.6, 0, Math.PI * 2); c.fill();
+    }
+
+    // üst yüz + ağaç ışıklarının üst yüzeye düşen sıcak yansıması
+    const tg = c.createLinearGradient(x, y - dy, x + w + dx, y);
+    tg.addColorStop(0, shade(col, 0.42)); tg.addColorStop(1, shade(col, 0.12));
+    c.fillStyle = tg;
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x + dx, y - dy); c.lineTo(x + w + dx, y - dy); c.lineTo(x + w, y); c.closePath(); c.fill();
+
+    // üst yüzeyde sıcak ağaç ışığı parlaması (bounce glow)
+    c.save();
+    c.globalCompositeOperation = 'lighter';
+    const topGlow = c.createRadialGradient(x + w * 0.52 + dx * 0.4, y - dy * 0.45, 2, x + w * 0.52 + dx * 0.4, y - dy * 0.45, w * 0.72);
+    topGlow.addColorStop(0, `rgba(${glow}, 0.52)`);
+    topGlow.addColorStop(0.6, `rgba(${glow}, 0.18)`);
+    topGlow.addColorStop(1, `rgba(${glow}, 0)`);
+    c.fillStyle = topGlow;
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x + dx, y - dy); c.lineTo(x + w + dx, y - dy); c.lineTo(x + w, y); c.closePath(); c.fill();
+    c.restore();
+
     // yan yüz
-    c.fillStyle = shade(col, -0.55);
-    c.beginPath(); c.moveTo(x + w, y); c.lineTo(x + w + dx, y - dy); c.lineTo(x + w + dx, y + h - dy); c.lineTo(x + w, y + h); c.fill();
+    const sg = c.createLinearGradient(x + w, y, x + w + dx, y + h);
+    sg.addColorStop(0, shade(col, -0.35)); sg.addColorStop(1, shade(col, -0.68));
+    c.fillStyle = sg;
+    c.beginPath(); c.moveTo(x + w, y); c.lineTo(x + w + dx, y - dy); c.lineTo(x + w + dx, y + h - dy); c.lineTo(x + w, y + h); c.closePath(); c.fill();
+
     // kurdeleler
-    const rw = Math.max(10, w * 0.13);
+    const rw = Math.max(9, w * 0.13);
     const rg = c.createLinearGradient(x + w / 2 - rw / 2, 0, x + w / 2 + rw / 2, 0);
-    rg.addColorStop(0, shade(rib, 0.4)); rg.addColorStop(1, shade(rib, -0.3));
+    rg.addColorStop(0, shade(rib, 0.45)); rg.addColorStop(0.5, rib); rg.addColorStop(1, shade(rib, -0.32));
     c.fillStyle = rg; c.fillRect(x + w / 2 - rw / 2, y, rw, h);
-    c.fillStyle = shade(rib, -0.1); c.fillRect(x, y + h * 0.42, w, rw * 0.9);
+    c.fillStyle = shade(rib, -0.08); c.fillRect(x, y + h * 0.42, w, rw * 0.9);
     c.fillStyle = shade(rib, -0.45);
     c.beginPath(); c.moveTo(x + w, y + h * 0.42); c.lineTo(x + w + dx, y + h * 0.42 - dy);
     c.lineTo(x + w + dx, y + h * 0.42 - dy + rw * 0.9); c.lineTo(x + w, y + h * 0.42 + rw * 0.9); c.fill();
-    c.fillStyle = shade(rib, 0.2);
+    c.fillStyle = shade(rib, 0.3);
     c.beginPath(); c.moveTo(x + w / 2 - rw / 2, y); c.lineTo(x + w / 2 - rw / 2 + dx, y - dy);
     c.lineTo(x + w / 2 + rw / 2 + dx, y - dy); c.lineTo(x + w / 2 + rw / 2, y); c.fill();
+
+    // üst kenarda ince kar birikintisi
+    if (hasSnow) {
+      c.fillStyle = 'rgba(235, 244, 255, 0.78)';
+      for (let i = 0; i < 6; i++) {
+        const sx = x + w * (0.1 + i * 0.16);
+        c.beginPath(); c.ellipse(sx, y + 1, rnd(6, 12), rnd(2.2, 3.8), 0, 0, Math.PI * 2); c.fill();
+      }
+    }
+
     // fiyonk
     const bx = x + w / 2 + dx / 2, by = y - dy / 2 - 4;
-    c.fillStyle = shade(rib, 0.1);
-    c.beginPath(); c.ellipse(bx - 14, by - 6, 15, 9, -0.45, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(bx + 14, by - 6, 15, 9, 0.45, 0, Math.PI * 2); c.fill();
-    c.fillStyle = shade(rib, -0.35);
-    c.beginPath(); c.ellipse(bx - 13, by - 6, 7, 4, -0.45, 0, Math.PI * 2); c.fill();
-    c.beginPath(); c.ellipse(bx + 13, by - 6, 7, 4, 0.45, 0, Math.PI * 2); c.fill();
-    c.fillStyle = shade(rib, 0.45);
-    c.beginPath(); c.arc(bx, by - 3, 6, 0, Math.PI * 2); c.fill();
+    const bs = clamp(w / 105, 0.72, 1.15);
+    c.fillStyle = shade(rib, 0.15);
+    c.beginPath(); c.ellipse(bx - 14 * bs, by - 6 * bs, 15 * bs, 9 * bs, -0.45, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(bx + 14 * bs, by - 6 * bs, 15 * bs, 9 * bs, 0.45, 0, Math.PI * 2); c.fill();
+    c.fillStyle = shade(rib, -0.32);
+    c.beginPath(); c.ellipse(bx - 13 * bs, by - 6 * bs, 7 * bs, 4 * bs, -0.45, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(bx + 13 * bs, by - 6 * bs, 7 * bs, 4 * bs, 0.45, 0, Math.PI * 2); c.fill();
+    c.fillStyle = shade(rib, 0.55);
+    c.beginPath(); c.arc(bx, by - 3 * bs, 6 * bs, 0, Math.PI * 2); c.fill();
+    c.restore();
   }
 
   // ------------------------------------------------- katman -> ASCII hücreleri
@@ -604,8 +704,10 @@
           sr += data[p] * a; sg += data[p + 1] * a; sb += data[p + 2] * a; sa += a;
         }
         const alpha = sa / (n * 255);
-        if (alpha < 0.42) continue;
-        const r = sr / sa, g = sg / sa, b = sb / sa;
+        const minA = L.name === 'ground' ? 0.14 : 0.42;
+        if (alpha < minA) continue;
+        const fadeMul = L.name === 'ground' ? Math.pow(alpha, 0.85) : 1;
+        const r = (sr / sa) * fadeMul, g = (sg / sa) * fadeMul, b = (sb / sa) * fadeMul;
         const lum = (0.3 * r + 0.59 * g + 0.11 * b) / 255;
         const mx = Math.max(r, g, b) / 255;
         const ramp = L.ramp;
@@ -761,6 +863,34 @@
       b.beginPath(); b.arc(x, y, r, 0, Math.PI * 2); b.fill();
     }
 
+    // 5.5) Uzak, çok zarif gerçekçi hilal ay (sol üst gökyüzünü dengeler)
+    const mr = clamp(Math.min(W, H) * 0.036, 18, 34);
+    const mx = W * (layout === 'side' ? 0.13 : 0.16), my = H * (layout === 'side' ? 0.16 : 0.11);
+    const mHalo = b.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 6.5);
+    mHalo.addColorStop(0, 'rgba(205, 222, 255, 0.18)');
+    mHalo.addColorStop(0.35, 'rgba(140, 175, 235, 0.07)');
+    mHalo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    b.fillStyle = mHalo;
+    b.fillRect(mx - mr * 6.5, my - mr * 6.5, mr * 13, mr * 13);
+    // hilal katmanı
+    const mc = document.createElement('canvas');
+    const ms = Math.ceil(mr * 3);
+    mc.width = ms; mc.height = ms;
+    const mctx = mc.getContext('2d');
+    const mg = mctx.createRadialGradient(ms / 2 - mr * 0.35, ms / 2 - mr * 0.25, mr * 0.1, ms / 2, ms / 2, mr);
+    mg.addColorStop(0, 'rgba(255, 252, 240, 0.92)');
+    mg.addColorStop(0.7, 'rgba(222, 232, 248, 0.8)');
+    mg.addColorStop(1, 'rgba(170, 190, 225, 0.6)');
+    mctx.fillStyle = mg;
+    mctx.beginPath(); mctx.arc(ms / 2, ms / 2, mr, 0, Math.PI * 2); mctx.fill();
+    // gerçekçi gölge kesimi (hilal)
+    mctx.globalCompositeOperation = 'destination-out';
+    mctx.beginPath(); mctx.arc(ms / 2 + mr * 0.44, ms / 2 - mr * 0.18, mr * 0.92, 0, Math.PI * 2); mctx.fill();
+    // hafif dünya ışığı (earthshine)
+    b.fillStyle = 'rgba(155, 178, 220, 0.05)';
+    b.beginPath(); b.arc(mx, my, mr * 0.98, 0, Math.PI * 2); b.fill();
+    b.drawImage(mc, mx - ms / 2, my - ms / 2);
+
     // 6) Parlayan yıldızlar
     twinkles = [];
     for (let i = 0; i < 48; i++) twinkles.push({
@@ -803,25 +933,25 @@
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
 
-    // 1) İpeksi, çok yumuşak kuzey ışığı perdeleri
-    for (let k = 0; k < 2; k++) {
-      const base = H * (0.14 + k * 0.06);
-      const amp = H * (k ? 0.032 : 0.045);
-      const col = k ? '110, 120, 235' : '55, 195, 175';
-      const g = ctx.createLinearGradient(0, base - H * 0.12, 0, base + H * 0.16);
+    // 1) İpeksi, zengin kuzey ışığı (aurora) perdeleri — üst gökyüzünü doldurur
+    for (let k = 0; k < 3; k++) {
+      const base = H * (0.11 + k * 0.055);
+      const amp = H * (k === 1 ? 0.036 : 0.048);
+      const col = k === 0 ? '60, 215, 185' : (k === 1 ? '100, 165, 245' : '145, 105, 235');
+      const g = ctx.createLinearGradient(0, base - H * 0.14, 0, base + H * 0.18);
       g.addColorStop(0, `rgba(${col}, 0)`);
-      g.addColorStop(0.35, `rgba(${col}, ${k ? 0.032 : 0.048})`);
-      g.addColorStop(0.68, `rgba(${col}, ${k ? 0.015 : 0.022})`);
+      g.addColorStop(0.32, `rgba(${col}, ${k === 0 ? 0.085 : 0.06})`);
+      g.addColorStop(0.65, `rgba(${col}, ${k === 0 ? 0.035 : 0.025})`);
       g.addColorStop(1, `rgba(${col}, 0)`);
       ctx.fillStyle = g;
       ctx.beginPath();
-      for (let x = 0; x <= W; x += 24) {
-        const y = base + Math.sin(x * 0.0026 + sec * 0.18 + k * 2.1) * amp + Math.cos(x * 0.0058 - sec * 0.22) * amp * 0.4;
-        x ? ctx.lineTo(x, y - H * 0.1) : ctx.moveTo(x, y - H * 0.1);
+      for (let x = 0; x <= W; x += 20) {
+        const y = base + Math.sin(x * 0.0024 + sec * 0.2 + k * 1.9) * amp + Math.cos(x * 0.0052 - sec * 0.24) * amp * 0.42;
+        x ? ctx.lineTo(x, y - H * 0.11) : ctx.moveTo(x, y - H * 0.11);
       }
-      for (let x = W; x >= 0; x -= 24) {
-        const y = base + Math.sin(x * 0.0026 + sec * 0.18 + k * 2.1 + 0.5) * amp;
-        ctx.lineTo(x, y + H * 0.14);
+      for (let x = W; x >= 0; x -= 20) {
+        const y = base + Math.sin(x * 0.0024 + sec * 0.2 + k * 1.9 + 0.55) * amp;
+        ctx.lineTo(x, y + H * 0.15);
       }
       ctx.closePath();
       ctx.fill();
@@ -937,27 +1067,35 @@
       ctx.fillText('Eslem’in', cx, cy - big * 0.35);
       ctx.shadowBlur = 0;
 
-      // "ağacına ulaşmaya" / "hak kazandınız"
+      // "ağacına ulaşmaya" / "hak kazandınız" — sıcak şampanya tonu + yumuşak altın/beyaz parlama
       ctx.font = `500 ${sub}px "Cormorant Garamond", Georgia, serif`;
       if ('letterSpacing' in ctx) ctx.letterSpacing = `${sub * 0.06}px`;
-      ctx.fillStyle = 'rgba(238, 242, 250, 0.92)';
+      const sg = ctx.createLinearGradient(cx - maxW * 0.4, cy + sub * 0.8, cx + maxW * 0.4, cy + sub * 2.8);
+      sg.addColorStop(0, '#fff7e6');
+      sg.addColorStop(0.5, '#f7e6c4');
+      sg.addColorStop(1, '#fff8eb');
+      ctx.shadowColor = 'rgba(255, 224, 150, 0.52)';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = sg;
       ctx.fillText('ağacına ulaşmaya', cx, cy + sub * 1.15);
       ctx.fillText('hak kazandınız', cx, cy + sub * 2.45);
+      ctx.shadowBlur = 0;
       if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 
-      // alt ince altın çizgi
+      // alt ince altın çizgi + küçük elmas
       const botY = cy + sub * 3.5;
       ctx.fillStyle = lg1;
       ctx.fillRect(cx - lw * 0.85, botY, lw * 1.7, 1);
 
-      // hafif parıltılar
+      // tüm metni (alt satırlar dahil) çevreleyen zarif yıldız parçacıkları
       ctx.globalCompositeOperation = 'lighter';
-      for (let i = 0; i < 6; i++) {
-        const a = (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(sec * 2.0 + i * 1.9))) * ease;
-        const sx = cx + Math.cos(i * 2.1 + 0.4) * Math.min(maxW * 0.42, 130);
-        const sy = cy + Math.sin(i * 2.1 + 0.4) * big * 1.15;
-        const r = clamp(big * 0.08, 3, 5.5) * a;
-        ctx.fillStyle = `rgba(255, 232, 175, ${a * 0.75})`;
+      for (let i = 0; i < 12; i++) {
+        const a = (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(sec * 2.1 + i * 1.7))) * ease;
+        const ang = i * 2.39 + 0.3;
+        const sx = cx + Math.cos(ang) * Math.min(maxW * 0.48, 150);
+        const sy = cy + sub * 0.85 + Math.sin(ang) * (big * 1.55);
+        const r = clamp(big * (i % 3 === 0 ? 0.075 : 0.048), 2.2, 5.2) * a;
+        ctx.fillStyle = `rgba(255, 236, 185, ${a * 0.82})`;
         ctx.beginPath();
         ctx.moveTo(sx, sy - r * 2); ctx.lineTo(sx + r * 0.25, sy - r * 0.25); ctx.lineTo(sx + r * 2, sy);
         ctx.lineTo(sx + r * 0.25, sy + r * 0.25); ctx.lineTo(sx, sy + r * 2); ctx.lineTo(sx - r * 0.25, sy + r * 0.25);
@@ -984,8 +1122,8 @@
       ctx.font = `italic 600 ${big}px "Cormorant Garamond", Georgia, serif`;
       const gg = ctx.createLinearGradient(cx - W * 0.25, cy - big * 0.5, cx + W * 0.25, cy);
       gg.addColorStop(0, '#fff5d6'); gg.addColorStop(0.5, '#f4c762'); gg.addColorStop(1, '#c8922c');
-      ctx.shadowColor = 'rgba(255, 205, 100, 0.4)';
-      ctx.shadowBlur = big * 0.3;
+      ctx.shadowColor = 'rgba(255, 205, 100, 0.45)';
+      ctx.shadowBlur = big * 0.32;
       ctx.fillStyle = gg;
       ctx.fillText('Eslem’in ağacına', cx, cy - sub * 0.55);
       ctx.shadowBlur = 0;
@@ -993,8 +1131,11 @@
       // "ulaşmaya hak kazandınız"
       ctx.font = `500 ${sub}px "Cormorant Garamond", Georgia, serif`;
       if ('letterSpacing' in ctx) ctx.letterSpacing = `${sub * 0.06}px`;
-      ctx.fillStyle = 'rgba(238, 242, 250, 0.92)';
+      ctx.shadowColor = 'rgba(255, 224, 150, 0.52)';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = '#faf0d7';
       ctx.fillText('ulaşmaya hak kazandınız', cx, cy + sub * 0.95);
+      ctx.shadowBlur = 0;
       if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
     }
 
@@ -1671,14 +1812,14 @@
       if (f.x > W + 20) f.x = -20;
       const x = f.x + Math.sin(sec * f.fr + f.ph) * f.amp;
       if (f.soft) {
-        const rg = ctx.createRadialGradient(x, f.y, 0, x, f.y, f.s * 2.1);
-        rg.addColorStop(0, `rgba(235,244,255,${f.a * 0.65})`);
+        const rg = ctx.createRadialGradient(x, f.y, 0, x, f.y, f.s * 2.3);
+        rg.addColorStop(0, `rgba(242,248,255,${f.a * 0.78})`);
         rg.addColorStop(1, 'rgba(235,244,255,0)');
         ctx.fillStyle = rg;
-        ctx.beginPath(); ctx.arc(x, f.y, f.s * 2.1, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x, f.y, f.s * 2.3, 0, Math.PI * 2); ctx.fill();
       } else {
-        ctx.fillStyle = `rgba(235,242,255,${f.a})`;
-        ctx.beginPath(); ctx.arc(x, f.y, f.s * 0.65, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(240,246,255,${Math.min(1, f.a * 1.15)})`;
+        ctx.beginPath(); ctx.arc(x, f.y, f.s * 0.8, 0, Math.PI * 2); ctx.fill();
       }
     }
     ctx.restore();
