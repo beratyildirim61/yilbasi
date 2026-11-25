@@ -1125,8 +1125,125 @@
   }
 
   let skyFlash = 0, nextAutoFw = 16.5;
+  let parX = 0, parY = 0, targetParX = 0, targetParY = 0;
 
-  const fireworks = [], fwParticles = [], sparks = [];
+  // 35mm film greni deseni (bir kez üretilir)
+  const grainCanvas = document.createElement('canvas');
+  grainCanvas.width = 128; grainCanvas.height = 128;
+  (() => {
+    const gc = grainCanvas.getContext('2d');
+    const img = gc.createImageData(128, 128);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = (Math.random() * 255) | 0;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 8;
+    }
+    gc.putImageData(img, 0, 0);
+  })();
+  let grainPat = null;
+
+  // Anamorfik sinema lens parlaması
+  function drawAnamorphicFlare(x, y, w, alpha, tint) {
+    if (alpha <= 0.005) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // yatay uzun anamorfik çizgi (dış buz mavisi / altın hare)
+    const g1 = ctx.createLinearGradient(x - w, y, x + w, y);
+    g1.addColorStop(0, `rgba(${tint},0)`);
+    g1.addColorStop(0.35, `rgba(${tint},${alpha * 0.25})`);
+    g1.addColorStop(0.5, `rgba(255,248,225,${alpha * 0.85})`);
+    g1.addColorStop(0.65, `rgba(${tint},${alpha * 0.25})`);
+    g1.addColorStop(1, `rgba(${tint},0)`);
+    ctx.fillStyle = g1;
+    ctx.fillRect(x - w, y - 1.2, w * 2, 2.4);
+    // yumuşak geniş bant
+    const g2 = ctx.createLinearGradient(x - w * 0.7, y, x + w * 0.7, y);
+    g2.addColorStop(0, `rgba(${tint},0)`);
+    g2.addColorStop(0.5, `rgba(${tint},${alpha * 0.22})`);
+    g2.addColorStop(1, `rgba(${tint},0)`);
+    ctx.fillStyle = g2;
+    ctx.beginPath(); ctx.ellipse(x, y, w * 0.7, 9, 0, 0, Math.PI * 2); ctx.fill();
+    // ince lens yansıma halkaları (ghosts)
+    const dx = W * 0.5 - x, dy = H * 0.5 - y;
+    [[0.45, 22, 0.08], [1.15, 36, 0.05]].forEach(([m, r, a]) => {
+      const gx = x + dx * m, gy = y + dy * m;
+      const rg = ctx.createRadialGradient(gx, gy, r * 0.4, gx, gy, r);
+      rg.addColorStop(0, `rgba(${tint},0)`);
+      rg.addColorStop(0.8, `rgba(${tint},${alpha * a})`);
+      rg.addColorStop(1, `rgba(${tint},0)`);
+      ctx.fillStyle = rg;
+      ctx.beginPath(); ctx.arc(gx, gy, r, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  // Donmuş göl / buz yansıması (ağacın ters, yumuşak yansıması)
+  function drawIceReflection(sec) {
+    if (!unlocked) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, groundY - 4, W, H - groundY + 4);
+    ctx.clip();
+    // ters çevrilmiş yumuşak yansıma
+    ctx.translate(0, groundY * 2 + 6);
+    ctx.scale(1, -0.38);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.globalAlpha = 0.38;
+    ctx.drawImage(bloomA, Math.sin(sec * 0.7) * 2.5, 0, W, H);
+    ctx.globalAlpha = 0.24;
+    ctx.drawImage(bloomB, -Math.sin(sec * 0.5) * 3, 0, W, H);
+    ctx.restore();
+
+    // buz yüzeyi ince ışık parıltı çizgileri + aşağı doğru yumuşak sönüm
+    ctx.save();
+    const fadeG = ctx.createLinearGradient(0, groundY, 0, H);
+    fadeG.addColorStop(0, 'rgba(3,6,14,0)');
+    fadeG.addColorStop(0.55, 'rgba(2,4,10,0.62)');
+    fadeG.addColorStop(1, 'rgba(1,2,6,0.94)');
+    ctx.fillStyle = fadeG;
+    ctx.fillRect(0, groundY, W, H - groundY);
+    // buzda yatay mikro parıltılar
+    ctx.globalCompositeOperation = 'lighter';
+    const treeCx = offX + cols * cellW / 2;
+    for (let i = 0; i < 14; i++) {
+      const yy = groundY + 8 + i * ((H - groundY) / 16);
+      const ww = cols * cellW * (0.48 - i * 0.025) * (0.85 + 0.15 * Math.sin(sec * 1.3 + i));
+      if (ww <= 10) continue;
+      const sg = ctx.createLinearGradient(treeCx - ww, yy, treeCx + ww, yy);
+      sg.addColorStop(0, 'rgba(255,220,145,0)');
+      sg.addColorStop(0.5, `rgba(255,225,165,${(1 - i / 14) * 0.065})`);
+      sg.addColorStop(1, 'rgba(255,220,145,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(treeCx - ww + Math.sin(sec * 0.9 + i * 1.7) * 8, yy, ww * 2, 1.3);
+    }
+    ctx.restore();
+  }
+
+  // Zeminde ağır akan kış sisi
+  function drawGroundFog(sec) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 4; i++) {
+      const drift = ((sec * (10 + i * 4) + i * 320) % (W + 520)) - 260;
+      const ry = 36 + i * 16;
+      const rx = 220 + i * 95;
+      const y = groundY - 8 + i * 14;
+      const g = ctx.createRadialGradient(drift, y, 0, drift, y, rx);
+      g.addColorStop(0, `rgba(115,155,215,${0.042 - i * 0.006})`);
+      g.addColorStop(0.6, `rgba(80,120,185,${0.018})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save();
+      ctx.translate(drift, y);
+      ctx.scale(1, ry / rx);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  const fireworks = [], fwParticles = [], fwSmokes = [], fwFlares = [], sparks = [];
   const FW_PAL = [
     ['255,220,125', '255,248,210'],
     ['255,165,180', '255,230,210'],
@@ -1145,21 +1262,25 @@
   }
 
   function burstFirework(x, y, pal, big) {
-    const count = big ? 84 : 62;
-    const scale = big ? 1.28 : 1.0;
-    skyFlash = Math.min(0.22, skyFlash + (big ? 0.14 : 0.08));
+    const count = big ? 90 : 64;
+    const scale = big ? 1.32 : 1.0;
+    skyFlash = Math.min(0.24, skyFlash + (big ? 0.15 : 0.08));
+    fwSmokes.push({ x, y, r: big ? 38 : 26, life: 0, max: rnd(2.8, 4.2), col: pal[0] });
+    if (big) fwFlares.push({ x, y, life: 0, max: 0.65, col: pal[0] });
     for (let i = 0; i < count; i++) {
       const a = (Math.PI * 2 * i) / count + rnd(-0.07, 0.07);
-      const ring = i % 3 === 0 ? 0.58 : 1.0;
-      const sp = rnd(65, 240) * ring * scale;
+      const ring = i % 3 === 0 ? 0.56 : 1.0;
+      const sp = rnd(65, 245) * ring * scale;
       fwParticles.push({
         x, y, px: x, py: y,
         vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        life: 0, max: rnd(1.3, 2.4),
+        life: 0, max: rnd(1.3, 2.5),
         col: ring < 1 ? pal[1] : pal[0],
-        sz: rnd(1.3, 2.7), glitter: Math.random() < 0.45, willow: big && ring === 1
+        sz: rnd(1.3, 2.7), glitter: Math.random() < 0.45, willow: big && ring === 1,
+        crackle: big && i % 9 === 0
       });
     }
+    playBoom(big);
     playChime();
   }
 
@@ -1178,8 +1299,24 @@
     }, delay));
   }
 
-  function updateFireworks(dt, sec) {
+  function updateFireworks(dt, sec, wind) {
     ctx.save();
+    // gerçekçi patlama dumanları (önce yumuşakça çizilir)
+    for (let i = fwSmokes.length - 1; i >= 0; i--) {
+      const s = fwSmokes[i];
+      s.life += dt;
+      if (s.life >= s.max) { fwSmokes.splice(i, 1); continue; }
+      s.x += wind * dt * 0.45; s.y -= 6 * dt;
+      const k = s.life / s.max;
+      const rad = s.r * (1 + k * 2.4);
+      const a = (1 - k) * (1 - k) * 0.11;
+      const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, rad);
+      g.addColorStop(0, `rgba(${s.col},${a * 0.7})`);
+      g.addColorStop(0.5, `rgba(170,185,215,${a * 0.45})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(s.x, s.y, rad, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.globalCompositeOperation = 'lighter';
     if (skyFlash > 0.002) {
       skyFlash = Math.max(0, skyFlash - dt * 0.45);
@@ -1188,15 +1325,22 @@
       fg.addColorStop(1, 'rgba(255,225,165,0)');
       ctx.fillStyle = fg; ctx.fillRect(0, 0, W, H);
     }
+    for (let i = fwFlares.length - 1; i >= 0; i--) {
+      const fl = fwFlares[i];
+      fl.life += dt;
+      if (fl.life >= fl.max) { fwFlares.splice(i, 1); continue; }
+      const k = 1 - fl.life / fl.max;
+      drawAnamorphicFlare(fl.x, fl.y, 170 * (0.6 + 0.5 * k), k * k * 0.7, fl.col);
+    }
     for (let i = fireworks.length - 1; i >= 0; i--) {
       const f = fireworks[i];
       f.t += dt;
       const p = clamp(f.t / f.dur, 0, 1);
       const ease = 1 - Math.pow(1 - p, 2.4);
-      f.x = f.sx + (f.tx - f.sx) * ease;
+      f.x = f.sx + (f.tx - f.sx) * ease + Math.sin(p * Math.PI) * wind * 0.25;
       f.y = f.sy + (f.ty - f.sy) * ease;
       f.trail.push([f.x, f.y]);
-      if (f.trail.length > 12) f.trail.shift();
+      if (f.trail.length > 14) f.trail.shift();
       for (let j = 1; j < f.trail.length; j++) {
         const a = j / f.trail.length;
         ctx.strokeStyle = `rgba(${f.pal[0]},${a * 0.8})`;
@@ -1214,10 +1358,23 @@
     for (let i = fwParticles.length - 1; i >= 0; i--) {
       const p = fwParticles[i];
       p.life += dt;
-      if (p.life >= p.max) { fwParticles.splice(i, 1); continue; }
+      if (p.life >= p.max) {
+        if (p.crackle) {
+          for (let c = 0; c < 4; c++) {
+            const ca = Math.random() * 6.28, cs = rnd(25, 65);
+            fwParticles.push({
+              x: p.x, y: p.y, px: p.x, py: p.y,
+              vx: Math.cos(ca) * cs, vy: Math.sin(ca) * cs,
+              life: 0, max: rnd(0.25, 0.45), col: '255,250,235',
+              sz: 1.4, glitter: true, willow: false, crackle: false
+            });
+          }
+        }
+        fwParticles.splice(i, 1); continue;
+      }
       p.px = p.x; p.py = p.y;
       const drag = p.willow ? 0.18 : 0.25;
-      p.vx *= Math.pow(drag, dt);
+      p.vx = p.vx * Math.pow(drag, dt) + wind * dt * 0.35;
       p.vy = p.vy * Math.pow(drag, dt) + (p.willow ? 72 : 52) * dt;
       p.x += p.vx * dt; p.y += p.vy * dt;
       const k = 1 - p.life / p.max;
@@ -1291,6 +1448,24 @@
     o1.connect(g); o2.connect(g2); g2.connect(g);
     o1.start(now); o2.start(now);
     o1.stop(now + dur + 0.05); o2.stop(now + dur + 0.05);
+  }
+  function playBoom(big) {
+    if (!audioCtx || !musicOn) return;
+    const now = audioCtx.currentTime;
+    // uzak yumuşak bas patlama sesi
+    const dur = big ? 0.55 : 0.35;
+    const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.2);
+    const src = audioCtx.createBufferSource(); src.buffer = buf;
+    const flt = audioCtx.createBiquadFilter(); flt.type = 'lowpass';
+    flt.frequency.setValueAtTime(big ? 220 : 180, now);
+    flt.frequency.exponentialRampToValueAtTime(55, now + dur);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(big ? 0.14 : 0.08, now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    src.connect(flt); flt.connect(g); g.connect(audioCtx.destination);
+    src.start(now);
   }
   function playChime() {
     if (!audioCtx || !musicOn) return;
@@ -1390,49 +1565,69 @@
       }
     }
 
-    // filmsel kamera yaklaşması (dolly-in)
+    // filmsel kamera yaklaşması (dolly-in) + 3B paralaks + kış rüzgarı
     const camP = unlocked ? clamp(t / 12.5, 0, 1) : 0;
     const camEase = 1 - Math.pow(1 - camP, 3);
     const camScale = unlocked ? (0.945 + 0.055 * camEase + 0.004 * Math.sin(sec * 0.35)) : 1;
+    parX += (targetParX - parX) * Math.min(1, dt * 3.5);
+    parY += (targetParY - parY) * Math.min(1, dt * 3.5);
+    const wind = Math.sin(sec * 0.28) * 14 + Math.sin(sec * 0.71) * 7;
 
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    ctx.drawImage(bgCanvas, 0, 0, W, H);
-    drawSkyFx(sec, dt, t, 1);
-    drawLanterns(sec, dt, t);
-
-    // kamera dönüşümü sahne katmanına uygulanır
     ctx.save();
-    ctx.translate(W / 2, H * 0.52);
+    ctx.translate(-parX * 8, -parY * 5);
+    ctx.drawImage(bgCanvas, -12, -12, W + 24, H + 24);
+    drawSkyFx(sec, dt, t, 1);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(-parX * 4, -parY * 3);
+    drawLanterns(sec, dt, t);
+    ctx.restore();
+
+    // kamera dönüşümü + paralaks sahne katmanına uygulanır
+    ctx.save();
+    ctx.translate(W / 2 + parX * 7, H * 0.52 + parY * 4);
     ctx.scale(camScale, camScale);
     ctx.translate(-W / 2, -H * 0.52);
 
+    drawGroundFog(sec);
     drawOrbiters(sec, dt, t, 1, false);
 
     if (unlocked) {
-      ctx.globalAlpha = 1;
-      ctx.drawImage(scene, 0, 0, W, H);
-
       const ba = bloomA.getContext('2d'), bb = bloomB.getContext('2d');
       ba.clearRect(0, 0, bloomA.width, bloomA.height);
       ba.drawImage(scene, 0, 0, bloomA.width, bloomA.height);
       bb.clearRect(0, 0, bloomB.width, bloomB.height);
       bb.drawImage(bloomA, 0, 0, bloomB.width, bloomB.height);
+
+      // donmuş göl / buz yansıması (ağacın altında gerçekçi ayna yansıması)
+      drawIceReflection(sec);
+
+      ctx.globalAlpha = 1;
+      ctx.drawImage(scene, 0, 0, W, H);
+
       ctx.globalCompositeOperation = 'lighter';
       ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
       ctx.globalAlpha = 0.22; ctx.drawImage(bloomA, 0, 0, W, H);
       ctx.globalAlpha = 0.36; ctx.drawImage(bloomB, 0, 0, W, H);
 
-      // yıldız halesi + ateşlenme dalgası + hacimsel ışık hüzmeleri
+      // yıldız halesi + ateşlenme dalgası + anamorfik sinema lens parlaması
       if (t > 4.75) {
         const gx = offX + cols * cellW / 2, gy = offY + (92 / VH) * rows * cellH;
         const stAge = t - 4.75;
+        const starVis = clamp(stAge / 0.55, 0, 1);
         const rr = cols * cellW * (0.105 + 0.014 * Math.sin(sec * 2.2));
         const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, rr);
-        g.addColorStop(0, 'rgba(255,215,105,.45)'); g.addColorStop(1, 'rgba(255,205,90,0)');
-        ctx.globalAlpha = clamp(stAge / 0.55, 0, 1);
+        g.addColorStop(0, 'rgba(255,215,105,.48)'); g.addColorStop(1, 'rgba(255,205,90,0)');
+        ctx.globalAlpha = starVis;
         ctx.fillStyle = g; ctx.fillRect(gx - rr, gy - rr, rr * 2, rr * 2);
+
+        // anamorfik lens parlaması (yıldız yanınca güçlü, sonra zarif)
+        const burstBoost = stAge < 2.0 ? Math.pow(1 - stAge / 2.0, 2) * 0.55 : 0;
+        drawAnamorphicFlare(gx, gy, cols * cellW * (0.36 + burstBoost * 0.3), starVis * (0.42 + burstBoost), '165,215,255');
 
         // şok dalgası halkası (yıldız yanınca bir kez yayılır)
         if (stAge < 2.2) {
@@ -1463,26 +1658,39 @@
     ctx.restore(); // kamera sonu
 
     if (unlocked) drawTitle(t, sec, 1);
-    updateFireworks(dt, sec);
+    updateFireworks(dt, sec, wind);
 
-    // kar (derinlikli)
+    // kar (derinlikli + rüzgar + ön plan paralaks)
+    ctx.save();
+    ctx.translate(parX * 14, parY * 8);
     for (const f of snow) {
       f.y += f.vy * dt;
-      f.x += f.vx * dt;
-      if (f.y > H + 12) Object.assign(f, flake(false));
-      if (f.x < -12) f.x = W + 12;
-      if (f.x > W + 12) f.x = -12;
+      f.x += (f.vx + wind * (f.soft ? 1.15 : 0.45)) * dt;
+      if (f.y > H + 16) Object.assign(f, flake(false));
+      if (f.x < -20) f.x = W + 20;
+      if (f.x > W + 20) f.x = -20;
       const x = f.x + Math.sin(sec * f.fr + f.ph) * f.amp;
       if (f.soft) {
-        const rg = ctx.createRadialGradient(x, f.y, 0, x, f.y, f.s * 1.9);
+        const rg = ctx.createRadialGradient(x, f.y, 0, x, f.y, f.s * 2.1);
         rg.addColorStop(0, `rgba(235,244,255,${f.a * 0.65})`);
         rg.addColorStop(1, 'rgba(235,244,255,0)');
         ctx.fillStyle = rg;
-        ctx.beginPath(); ctx.arc(x, f.y, f.s * 1.9, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x, f.y, f.s * 2.1, 0, Math.PI * 2); ctx.fill();
       } else {
         ctx.fillStyle = `rgba(235,242,255,${f.a})`;
         ctx.beginPath(); ctx.arc(x, f.y, f.s * 0.65, 0, Math.PI * 2); ctx.fill();
       }
+    }
+    ctx.restore();
+
+    // 35mm sinema film greni (çok hafif doku)
+    if (!grainPat) grainPat = ctx.createPattern(grainCanvas, 'repeat');
+    if (grainPat) {
+      ctx.save();
+      ctx.translate(((sec * 90) | 0) % 128, ((sec * 65) | 0) % 128);
+      ctx.fillStyle = grainPat;
+      ctx.fillRect(-128, -128, W + 256, H + 256);
+      ctx.restore();
     }
     ctx.restore();
     requestAnimationFrame(frame);
@@ -1490,7 +1698,11 @@
 
   let rt;
   window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { resize(); initFestive(); }, 150); });
-  canvas.addEventListener('pointermove', e => { if (unlocked) addSparks(e.clientX, e.clientY, 2); });
+  canvas.addEventListener('pointermove', e => {
+    targetParX = (e.clientX / W - 0.5) * 2;
+    targetParY = (e.clientY / H - 0.5) * 2;
+    if (unlocked) addSparks(e.clientX, e.clientY, 2);
+  });
   canvas.addEventListener('pointerdown', e => {
     if (!unlocked) return;
     addSparks(e.clientX, e.clientY, 12);
