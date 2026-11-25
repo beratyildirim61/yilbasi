@@ -3,13 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Christmas Tree</title>
+<title>Eslem'in Ağacı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500;1,600&family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  html, body { margin: 0; height: 100%; background: #02040a; overflow: hidden; }
   canvas { display: block; width: 100vw; height: 100vh; cursor: pointer; }
   #gate {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-    background: radial-gradient(ellipse at center, #0d1a2b 0%, #000 75%);
+    padding: 20px 0; overflow-y: auto;
+    background: radial-gradient(ellipse at 50% 45%, #0c172b 0%, #040812 55%, #010206 100%);
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif; z-index: 10;
     transition: opacity .7s ease;
   }
@@ -33,6 +37,10 @@
   }
   #box button:hover { filter: brightness(1.08); }
   #msg { min-height: 20px; margin-top: 12px; font-size: 14px; color: #ff8a7a; }
+  #vidWrap { display: none; margin-top: 14px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,.16); background: #000; }
+  #vidWrap.show { display: block; animation: fadeIn .35s ease; }
+  #eslemVid { display: block; width: 100%; max-height: 52vh; background: #000; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   .shake { animation: shake .45s; }
   @keyframes shake {
     20%, 60% { transform: translateX(-9px); } 40%, 80% { transform: translateX(9px); }
@@ -49,6 +57,9 @@
       <input id="pw" type="text" placeholder="Cevabını yaz..." spellcheck="false">
       <button type="submit">Gir</button>
       <div id="msg"></div>
+      <div id="vidWrap">
+        <video id="eslemVid" src="m.mp4" controls playsinline></video>
+      </div>
     </div>
   </form>
 </div>
@@ -157,6 +168,13 @@
         c.beginPath(); c.moveTo(x, y);
         c.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len); c.stroke();
       }
+      // dal uçlarında kar
+      for (let x = -wb; x <= wb; x += rnd(6, 14)) {
+        if (Math.random() < 0.45) continue;
+        const yy = yb + 16 * (1 - (x / wb) ** 2) - rnd(2, 10);
+        c.fillStyle = `rgba(${230 + rnd(0, 25) | 0},${238 + rnd(0, 17) | 0},255,${rnd(0.55, 0.9)})`;
+        c.beginPath(); c.ellipse(CXV + x, yy, rnd(4, 10), rnd(2, 4), rnd(-0.3, 0.3), 0, 7); c.fill();
+      }
       // ışık: sol üst aydınlık, sağ gölge
       const lg = c.createLinearGradient(CXV - wb, 0, CXV + wb, 0);
       lg.addColorStop(0, 'rgba(210,255,170,.14)'); lg.addColorStop(0.45, 'rgba(0,0,0,0)');
@@ -200,16 +218,24 @@
   }
 
   function makeOrnaments() {
-    const colors = ['#d8262a', '#e02f2f', '#e9a91f', '#f0b52e', '#2e64d6', '#e66aa8', '#c8d0dc', '#f07722', '#8a3fc0'];
+    const palette = [
+      { col: '#c8102e', rib: '#f2c14e' }, { col: '#d4af37', rib: '#fff1c1' },
+      { col: '#1f4fbf', rib: '#e8eef8' }, { col: '#8b1e3f', rib: '#f2c14e' },
+      { col: '#e8eef6', rib: '#c8102e' }, { col: '#b8860b', rib: '#c8102e' },
+      { col: '#2e7d5b', rib: '#f2c14e' }, { col: '#d9467a', rib: '#fff1c1' }
+    ];
+    const types = ['ball', 'ball', 'ball', 'band', 'band', 'bell', 'cane', 'gift', 'bow', 'starO', 'drop'];
     const list = [];
     let tries = 0;
-    while (list.length < 46 && tries++ < 5000) {
-      const y = rnd(TOP + 80, BOT - 10);
-      const hw = hwAt(y) * 0.92;
+    while (list.length < 40 && tries++ < 6000) {
+      const y = rnd(TOP + 70, BOT - 15);
+      const hw = hwAt(y) * 0.9;
       const x = CXV + rnd(-hw, hw);
-      const r = rnd(13, 22) * (0.75 + 0.35 * (y - TOP) / (BOT - TOP));
-      if (list.some(o => Math.hypot(o.x - x, o.y - y) < o.r + r + 10)) continue;
-      list.push({ x, y, r, col: pick(colors) });
+      const depth = (y - TOP) / (BOT - TOP);
+      const r = rnd(18, 27) * (0.7 + 0.45 * depth);
+      if (list.some(o => Math.hypot(o.x - x, o.y - y) < o.r + r + 9)) continue;
+      const p = pick(palette);
+      list.push({ x, y, r, col: p.col, rib: p.rib, type: pick(types), rot: rnd(-0.35, 0.35) });
     }
     list.sort(() => Math.random() - 0.5);
     return list;
@@ -223,44 +249,196 @@
     return `rgb(${r | 0},${g | 0},${b | 0})`;
   }
 
-  function drawOrnaments(c, list) {
-    for (const o of list) {
-      // ip ve başlık
-      c.fillStyle = '#d9b45a';
-      c.fillRect(o.x - o.r * 0.28, o.y - o.r - 6, o.r * 0.56, 7);
-      c.save();
-      c.shadowColor = 'rgba(0,0,0,.7)'; c.shadowBlur = 5; c.shadowOffsetY = 3;
-      const g = c.createRadialGradient(o.x - o.r * 0.38, o.y - o.r * 0.42, o.r * 0.08, o.x, o.y, o.r);
-      g.addColorStop(0, shade(o.col, 0.75));
-      g.addColorStop(0.3, shade(o.col, 0.15));
-      g.addColorStop(0.75, o.col);
-      g.addColorStop(1, shade(o.col, -0.6));
-      c.fillStyle = g;
-      c.beginPath(); c.arc(o.x, o.y, o.r, 0, Math.PI * 2); c.fill();
-      c.restore();
-    }
+  function sphere(c, x, y, r, col) {
+    const g = c.createRadialGradient(x - r * 0.4, y - r * 0.45, r * 0.05, x, y, r);
+    g.addColorStop(0, shade(col, 0.85));
+    g.addColorStop(0.22, shade(col, 0.25));
+    g.addColorStop(0.65, col);
+    g.addColorStop(1, shade(col, -0.7));
+    c.fillStyle = g;
+    c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+    // alt yansıma
+    const rg = c.createRadialGradient(x + r * 0.3, y + r * 0.55, 0, x + r * 0.3, y + r * 0.55, r * 0.5);
+    rg.addColorStop(0, 'rgba(255,255,255,.28)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = rg; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+    // parlak nokta
+    c.fillStyle = 'rgba(255,255,255,.95)';
+    c.beginPath(); c.ellipse(x - r * 0.38, y - r * 0.42, r * 0.2, r * 0.12, -0.6, 0, Math.PI * 2); c.fill();
   }
+
+  function cap(c, x, y, w) {
+    const g = c.createLinearGradient(x - w, 0, x + w, 0);
+    g.addColorStop(0, '#fff0b5'); g.addColorStop(0.5, '#c99a2e'); g.addColorStop(1, '#6b4a0e');
+    c.fillStyle = g; c.fillRect(x - w, y - 7, w * 2, 8);
+    c.strokeStyle = '#d9c9a0'; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(x, y - 10, 3.5, 0, Math.PI * 2); c.stroke();
+  }
+
+  function drawOrnament(c, o) {
+    const { x, y, r, col, rib } = o;
+    c.save();
+    c.shadowColor = 'rgba(0,0,0,.75)'; c.shadowBlur = 6; c.shadowOffsetY = 4;
+    switch (o.type) {
+      case 'ball':
+        sphere(c, x, y, r, col); c.shadowColor = 'transparent'; cap(c, x, y - r + 2, r * 0.3);
+        break;
+      case 'band': {
+        sphere(c, x, y, r, col);
+        c.shadowColor = 'transparent';
+        c.save(); c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.clip();
+        const bg = c.createLinearGradient(0, y - r * 0.2, 0, y + r * 0.2);
+        bg.addColorStop(0, shade(rib, 0.5)); bg.addColorStop(0.5, rib); bg.addColorStop(1, shade(rib, -0.5));
+        c.fillStyle = bg;
+        c.beginPath(); c.ellipse(x, y, r * 1.1, r * 0.2, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = shade(rib, 0.3);
+        for (let a = -0.8; a <= 0.8; a += 0.4) {
+          c.beginPath(); c.arc(x + a * r, y - r * 0.45 + Math.abs(a) * r * 0.15, r * 0.07, 0, 7); c.fill();
+          c.beginPath(); c.arc(x + a * r, y + r * 0.45 - Math.abs(a) * r * 0.15, r * 0.07, 0, 7); c.fill();
+        }
+        c.restore();
+        // parlaklığı yeniden ver
+        c.fillStyle = 'rgba(255,255,255,.9)';
+        c.beginPath(); c.ellipse(x - r * 0.38, y - r * 0.5, r * 0.18, r * 0.1, -0.6, 0, 7); c.fill();
+        cap(c, x, y - r + 2, r * 0.3);
+        break;
+      }
+      case 'drop': {
+        // damla / gözyaşı biçimli cam süs
+        const g = c.createLinearGradient(x - r, 0, x + r, 0);
+        g.addColorStop(0, shade(col, 0.6)); g.addColorStop(0.35, col); g.addColorStop(1, shade(col, -0.7));
+        c.fillStyle = g;
+        c.beginPath();
+        c.moveTo(x, y - r * 1.3);
+        c.bezierCurveTo(x + r * 0.9, y - r * 0.2, x + r * 0.9, y + r * 0.9, x, y + r * 0.95);
+        c.bezierCurveTo(x - r * 0.9, y + r * 0.9, x - r * 0.9, y - r * 0.2, x, y - r * 1.3);
+        c.fill();
+        c.shadowColor = 'transparent';
+        c.fillStyle = 'rgba(255,255,255,.85)';
+        c.beginPath(); c.ellipse(x - r * 0.3, y - r * 0.1, r * 0.1, r * 0.4, 0.15, 0, 7); c.fill();
+        cap(c, x, y - r * 1.25, r * 0.22);
+        break;
+      }
+      case 'bell': {
+        c.translate(x, y); c.rotate(o.rot);
+        const g = c.createLinearGradient(-r, 0, r, 0);
+        g.addColorStop(0, '#fff2b0'); g.addColorStop(0.35, '#e0b23a'); g.addColorStop(1, '#6e4a08');
+        c.fillStyle = g;
+        c.beginPath();
+        c.moveTo(-r * 0.25, -r);
+        c.quadraticCurveTo(-r * 0.75, -r * 0.8, -r * 0.7, r * 0.2);
+        c.quadraticCurveTo(-r * 0.75, r * 0.7, -r * 1.05, r * 0.85);
+        c.lineTo(r * 1.05, r * 0.85);
+        c.quadraticCurveTo(r * 0.75, r * 0.7, r * 0.7, r * 0.2);
+        c.quadraticCurveTo(r * 0.75, -r * 0.8, r * 0.25, -r);
+        c.closePath(); c.fill();
+        c.shadowColor = 'transparent';
+        c.fillStyle = '#8a5d0a';
+        c.beginPath(); c.ellipse(0, r * 0.85, r * 1.05, r * 0.16, 0, 0, 7); c.fill();
+        c.fillStyle = '#ffe9a0';
+        c.beginPath(); c.arc(0, r * 1.02, r * 0.2, 0, 7); c.fill();
+        // kırmızı fiyonk
+        c.fillStyle = '#c8102e';
+        c.beginPath(); c.ellipse(-r * 0.35, -r * 1.05, r * 0.4, r * 0.2, -0.4, 0, 7); c.fill();
+        c.beginPath(); c.ellipse(r * 0.35, -r * 1.05, r * 0.4, r * 0.2, 0.4, 0, 7); c.fill();
+        c.fillStyle = '#ff4a5e'; c.beginPath(); c.arc(0, -r * 1.02, r * 0.14, 0, 7); c.fill();
+        break;
+      }
+      case 'cane': {
+        c.translate(x, y); c.rotate(o.rot);
+        const path = new Path2D();
+        path.moveTo(r * 0.25, r * 1.2);
+        path.lineTo(r * 0.25, -r * 0.4);
+        path.arc(-r * 0.15, -r * 0.4, r * 0.4, 0, Math.PI, true);
+        c.lineCap = 'round';
+        c.strokeStyle = '#f4f4f4'; c.lineWidth = r * 0.36; c.stroke(path);
+        c.shadowColor = 'transparent';
+        c.setLineDash([r * 0.22, r * 0.22]);
+        c.strokeStyle = '#d0142c'; c.lineWidth = r * 0.36; c.stroke(path);
+        c.setLineDash([]);
+        c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = r * 0.08;
+        c.translate(-r * 0.08, 0); c.stroke(path);
+        break;
+      }
+      case 'gift': {
+        const s = r * 0.85;
+        const g = c.createLinearGradient(x - s, y - s, x + s, y + s);
+        g.addColorStop(0, shade(col, 0.3)); g.addColorStop(1, shade(col, -0.45));
+        c.fillStyle = g; c.fillRect(x - s, y - s * 0.8, s * 2, s * 1.8);
+        c.shadowColor = 'transparent';
+        c.fillStyle = rib;
+        c.fillRect(x - s * 0.15, y - s * 0.8, s * 0.3, s * 1.8);
+        c.fillRect(x - s, y + s * 0.0, s * 2, s * 0.26);
+        c.beginPath(); c.ellipse(x - s * 0.35, y - s * 0.95, s * 0.38, s * 0.22, -0.4, 0, 7); c.fill();
+        c.beginPath(); c.ellipse(x + s * 0.35, y - s * 0.95, s * 0.38, s * 0.22, 0.4, 0, 7); c.fill();
+        break;
+      }
+      case 'bow': {
+        c.translate(x, y);
+        const red = c.createLinearGradient(-r, -r, r, r);
+        red.addColorStop(0, '#ff4d5e'); red.addColorStop(0.5, '#c8102e'); red.addColorStop(1, '#5e0612');
+        c.fillStyle = red;
+        c.beginPath(); c.moveTo(0, 0); c.bezierCurveTo(-r * 1.3, -r * 0.9, -r * 1.3, r * 0.6, 0, 0); c.fill();
+        c.beginPath(); c.moveTo(0, 0); c.bezierCurveTo(r * 1.3, -r * 0.9, r * 1.3, r * 0.6, 0, 0); c.fill();
+        c.beginPath(); c.moveTo(-r * 0.1, 0); c.lineTo(-r * 0.6, r * 1.2); c.lineTo(-r * 0.25, r * 1.05); c.lineTo(0, r * 0.2); c.fill();
+        c.beginPath(); c.moveTo(r * 0.1, 0); c.lineTo(r * 0.6, r * 1.2); c.lineTo(r * 0.25, r * 1.05); c.lineTo(0, r * 0.2); c.fill();
+        c.shadowColor = 'transparent';
+        c.fillStyle = '#9c0a20'; c.beginPath(); c.arc(0, 0, r * 0.22, 0, 7); c.fill();
+        c.fillStyle = 'rgba(255,255,255,.4)';
+        c.beginPath(); c.ellipse(-r * 0.7, -r * 0.2, r * 0.25, r * 0.08, -0.5, 0, 7); c.fill();
+        break;
+      }
+      case 'starO': {
+        c.translate(x, y); c.rotate(o.rot);
+        const R = r * 1.05, ri = R * 0.45;
+        c.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? ri : R;
+          c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+        c.closePath();
+        const g = c.createLinearGradient(-R, -R, R, R);
+        g.addColorStop(0, '#ffffff'); g.addColorStop(0.45, '#cfd8e6'); g.addColorStop(1, '#5d6b80');
+        c.fillStyle = g; c.fill();
+        c.shadowColor = 'transparent';
+        c.strokeStyle = 'rgba(255,255,255,.6)'; c.lineWidth = 1.5; c.stroke();
+        break;
+      }
+    }
+    c.restore();
+  }
+
+  function drawOrnaments(c, list) {
+    for (const o of list) drawOrnament(c, o);
+  }
+
+  const LIGHT_COLS = [
+    ['#fffbe6', '#ffd56b'], ['#fffbe6', '#ffd56b'], ['#fff0f0', '#ff5a5a'],
+    ['#eef6ff', '#5aa0ff'], ['#f0fff0', '#6aff8a'], ['#fff6ff', '#ff7ad9']
+  ];
 
   function makeLights() {
     const list = [];
     for (let j = 0; j < 5; j++) {
       const hw = garlandY(j, 0).hw;
-      for (let x = -hw * 0.85; x <= hw * 0.85; x += rnd(45, 70))
-        list.push({ x: CXV + x, y: garlandY(j, x).y - rnd(6, 16) });
+      for (let x = -hw * 0.9; x <= hw * 0.9; x += rnd(30, 46))
+        list.push({ x: CXV + x, y: garlandY(j, x).y - rnd(10, 20) });
     }
-    for (let i = 0; i < 20; i++) {
-      const y = rnd(TOP + 60, BOT - 20), hw = hwAt(y) * 0.85;
+    for (let i = 0; i < 30; i++) {
+      const y = rnd(TOP + 50, BOT - 20), hw = hwAt(y) * 0.88;
       list.push({ x: CXV + rnd(-hw, hw), y });
     }
-    list.forEach(l => { l.ph = Math.random() * 6.28; l.sp = rnd(2, 5); l.t0 = 6.4 + Math.random() * 1.2; });
+    list.forEach(l => {
+      l.ph = Math.random() * 6.28; l.sp = rnd(1.5, 4.5);
+      l.t0 = 6.4 + Math.random() * 1.2; l.c = pick(LIGHT_COLS);
+    });
     return list;
   }
 
   function drawLights(c, list) {
     for (const l of list) {
-      const g = c.createRadialGradient(l.x, l.y, 0, l.x, l.y, 9);
-      g.addColorStop(0, '#fffbe6'); g.addColorStop(0.45, '#ffd56b'); g.addColorStop(1, 'rgba(255,190,60,0)');
-      c.fillStyle = g; c.beginPath(); c.arc(l.x, l.y, 9, 0, Math.PI * 2); c.fill();
+      const g = c.createRadialGradient(l.x, l.y, 0, l.x, l.y, 10);
+      g.addColorStop(0, l.c[0]); g.addColorStop(0.4, l.c[1]); g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(l.x, l.y, 10, 0, Math.PI * 2); c.fill();
     }
   }
 
@@ -433,14 +611,24 @@
     bloomA.width = Math.ceil(W / 4); bloomA.height = Math.ceil(H / 4);
     bloomB.width = Math.ceil(W / 12); bloomB.height = Math.ceil(H / 12);
 
-    const scale = Math.min(W * 0.96 / VW, H * 0.96 / VH);
+    const scaleA = Math.min(W * 0.94 / VW, H * 0.92 / VH);
+    sideFree = (W - VW * scaleA) / 2 + 85 * scaleA;
+    let scale, shift = 0;
+    if (sideFree > Math.max(250, W * 0.17)) {
+      layout = 'side'; scale = scaleA; shift = sideFree * 0.22; sideFree += shift;
+    } else {
+      layout = 'bottom'; scale = Math.min(W * 0.94 / VW, H * 0.8 / VH);
+    }
     const rw = VW * scale, rh = VH * scale;
-    fs = clamp(rh / 112, 6, 11);
+    fs = clamp(rh / 128, 5.5, 10);
     sctx.font = `bold ${fs}px Menlo, Consolas, "Courier New", monospace`;
     cellW = sctx.measureText('M').width;
     cellH = fs * 1.08;
     cols = Math.floor(rw / cellW); rows = Math.floor(rh / cellH);
-    offX = (W - cols * cellW) / 2; offY = (H - rows * cellH) / 2;
+    offX = (W - cols * cellW) / 2 + shift;
+    offY = layout === 'side' ? (H - rows * cellH) / 2 : H * 0.015;
+    groundY = offY + rows * cellH * (712 / VH);
+    buildBackground();
 
     snow = [];
     const n = Math.round(W * H / 2600);
@@ -451,10 +639,331 @@
   function flake(anyY) {
     const z = Math.random();
     return {
-      x: Math.random() * W, y: anyY ? Math.random() * H : -8,
-      vy: 10 + z * 40, amp: rnd(3, 14), ph: Math.random() * 6.28, fr: rnd(0.3, 1),
-      a: 0.25 + z * 0.75, s: 0.8 + z * 1.6
+      x: Math.random() * W, y: anyY ? Math.random() * H : -12,
+      vy: 10 + z * 34, vx: rnd(-4, 6), amp: rnd(4, 16), ph: Math.random() * 6.28, fr: rnd(0.25, 0.9),
+      a: 0.16 + z * 0.62, s: 0.7 + z * 2.1, soft: z > 0.82
     };
+  }
+
+  // ------------------------------------------------------------- arka plan
+  const bgCanvas = document.createElement('canvas');
+  let twinkles = [], bokeh = [], shooting = null, layout = 'bottom', sideFree = 0, groundY = 0;
+
+  function buildBackground() {
+    bgCanvas.width = W * DPR; bgCanvas.height = H * DPR;
+    const b = bgCanvas.getContext('2d');
+    b.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    const treeCx = offX + cols * cellW / 2;
+
+    // 1) Derin gece stüdyo/gökyüzü gradyanı
+    const sky = b.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#010207');
+    sky.addColorStop(0.38, '#040917');
+    sky.addColorStop(0.72, '#091428');
+    sky.addColorStop(0.86, '#081020');
+    sky.addColorStop(1, '#02040a');
+    b.fillStyle = sky;
+    b.fillRect(0, 0, W, H);
+
+    // 2) Ağaç arkasında yumuşak atmosferik derinlik ışığı
+    const backGlow = b.createRadialGradient(treeCx, groundY - H * 0.25, 0, treeCx, groundY - H * 0.22, Math.max(W, H) * 0.52);
+    backGlow.addColorStop(0, 'rgba(26, 62, 108, 0.26)');
+    backGlow.addColorStop(0.45, 'rgba(14, 34, 68, 0.14)');
+    backGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    b.fillStyle = backGlow;
+    b.fillRect(0, 0, W, H);
+
+    // 3) Uzak siluet dağ sırası (çok hafif, sis içinde kaybolan)
+    const drawMistRidge = (yBase, amp, f1, f2, seed, colTop, colBot) => {
+      b.beginPath();
+      b.moveTo(0, H);
+      for (let x = 0; x <= W + 12; x += 12) {
+        const y = yBase
+          - amp * 0.55 * Math.sin(x * f1 + seed)
+          - amp * 0.28 * Math.sin(x * f2 + seed * 1.9)
+          - amp * 0.17 * Math.cos(x * f2 * 2.1 - seed);
+        b.lineTo(x, y);
+      }
+      b.lineTo(W, H);
+      b.closePath();
+      const rg = b.createLinearGradient(0, yBase - amp, 0, H);
+      rg.addColorStop(0, colTop);
+      rg.addColorStop(0.35, colBot);
+      rg.addColorStop(1, '#020409');
+      b.fillStyle = rg;
+      b.fill();
+    };
+    drawMistRidge(groundY - H * 0.08, H * 0.065, 0.0022, 0.0061, 0.8, 'rgba(22, 38, 68, 0.38)', 'rgba(8, 15, 30, 0.72)');
+    drawMistRidge(groundY - H * 0.03, H * 0.038, 0.0031, 0.0085, 2.7, 'rgba(16, 28, 52, 0.55)', 'rgba(6, 11, 22, 0.88)');
+
+    // 4) İnce ufuk sisi + karanlık yansıtıcı kış zemini
+    const mist = b.createLinearGradient(0, groundY - H * 0.12, 0, groundY + H * 0.12);
+    mist.addColorStop(0, 'rgba(90, 130, 190, 0)');
+    mist.addColorStop(0.48, 'rgba(105, 145, 205, 0.09)');
+    mist.addColorStop(0.55, 'rgba(35, 58, 95, 0.08)');
+    mist.addColorStop(1, 'rgba(2, 4, 10, 0)');
+    b.fillStyle = mist;
+    b.fillRect(0, groundY - H * 0.12, W, H * 0.24);
+
+    // Zemin düzlemi
+    const floorG = b.createLinearGradient(0, groundY - H * 0.01, 0, H);
+    floorG.addColorStop(0, 'rgba(12, 22, 40, 0.88)');
+    floorG.addColorStop(0.28, 'rgba(6, 11, 22, 0.96)');
+    floorG.addColorStop(1, '#010206');
+    b.fillStyle = floorG;
+    b.fillRect(0, groundY - H * 0.01, W, H - groundY + H * 0.02);
+
+    // 5) Gerçekçi yıldız alanı (üst gökyüzü, ince noktasal)
+    const ns = Math.round(W * H / 2800);
+    for (let i = 0; i < ns; i++) {
+      const y = Math.pow(Math.random(), 1.55) * (groundY - H * 0.05);
+      const x = Math.random() * W;
+      const distFade = clamp(1 - y / groundY, 0.15, 1);
+      const col = pick(['255,255,255', '210,228,255', '255,244,224', '190,215,255']);
+      b.fillStyle = `rgba(${col},${rnd(0.1, 0.6) * distFade})`;
+      const r = Math.random() < 0.9 ? rnd(0.4, 0.85) : rnd(0.9, 1.35);
+      b.beginPath(); b.arc(x, y, r, 0, Math.PI * 2); b.fill();
+    }
+
+    // 6) Parlayan yıldızlar
+    twinkles = [];
+    for (let i = 0; i < 48; i++) twinkles.push({
+      x: Math.random() * W,
+      y: Math.pow(Math.random(), 1.5) * (groundY - H * 0.08),
+      s: rnd(0.75, 1.45), ph: Math.random() * 6.28, sp: rnd(0.7, 2.0),
+      col: pick(['255,255,255', '215,232,255', '255,238,205'])
+    });
+
+    // 7) Sinematik derinlikli bokeh küreleri (arka planda yumuşak ışık topları)
+    bokeh = [];
+    const bokehCols = [
+      '255, 206, 115', '255, 185, 95', '125, 185, 255',
+      '235, 115, 130', '165, 225, 210', '255, 235, 185'
+    ];
+    const nb = Math.round(clamp(W / 42, 22, 42));
+    for (let i = 0; i < nb; i++) {
+      const large = i < nb * 0.35;
+      bokeh.push({
+        x: Math.random() * W,
+        y: rnd(H * 0.05, groundY + H * 0.06),
+        r: large ? rnd(34, 82) : rnd(10, 28),
+        a: large ? rnd(0.025, 0.065) : rnd(0.04, 0.11),
+        vx: rnd(-3, 3), vy: rnd(-2.5, 2.5),
+        ph: Math.random() * 6.28, sp: rnd(0.35, 0.95),
+        col: pick(bokehCols)
+      });
+    }
+
+    // 8) Sinematik vinyet (kenarları yumuşakça karartır)
+    const vig = b.createRadialGradient(W * 0.5, H * 0.48, Math.min(W, H) * 0.3, W * 0.5, H * 0.5, Math.max(W, H) * 0.78);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(0.7, 'rgba(0,0,0,0.18)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.62)');
+    b.fillStyle = vig;
+    b.fillRect(0, 0, W, H);
+  }
+
+  function drawSkyFx(sec, dt, t, fade) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    // 1) İpeksi, çok yumuşak kuzey ışığı perdeleri
+    for (let k = 0; k < 2; k++) {
+      const base = H * (0.14 + k * 0.06);
+      const amp = H * (k ? 0.032 : 0.045);
+      const col = k ? '110, 120, 235' : '55, 195, 175';
+      const g = ctx.createLinearGradient(0, base - H * 0.12, 0, base + H * 0.16);
+      g.addColorStop(0, `rgba(${col}, 0)`);
+      g.addColorStop(0.35, `rgba(${col}, ${k ? 0.032 : 0.048})`);
+      g.addColorStop(0.68, `rgba(${col}, ${k ? 0.015 : 0.022})`);
+      g.addColorStop(1, `rgba(${col}, 0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 24) {
+        const y = base + Math.sin(x * 0.0026 + sec * 0.18 + k * 2.1) * amp + Math.cos(x * 0.0058 - sec * 0.22) * amp * 0.4;
+        x ? ctx.lineTo(x, y - H * 0.1) : ctx.moveTo(x, y - H * 0.1);
+      }
+      for (let x = W; x >= 0; x -= 24) {
+        const y = base + Math.sin(x * 0.0026 + sec * 0.18 + k * 2.1 + 0.5) * amp;
+        ctx.lineTo(x, y + H * 0.14);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // 2) Yumuşak bokeh küreleri
+    for (const o of bokeh) {
+      o.x += o.vx * dt; o.y += o.vy * dt;
+      if (o.x < -o.r) o.x = W + o.r;
+      if (o.x > W + o.r) o.x = -o.r;
+      if (o.y < -o.r) o.y = groundY + o.r;
+      if (o.y > groundY + H * 0.12 + o.r) o.y = -o.r;
+      const pulse = 0.65 + 0.35 * Math.sin(sec * o.sp + o.ph);
+      const a = o.a * pulse;
+      const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+      g.addColorStop(0, `rgba(${o.col}, ${a * 1.15})`);
+      g.addColorStop(0.55, `rgba(${o.col}, ${a * 0.55})`);
+      g.addColorStop(0.85, `rgba(${o.col}, ${a * 0.18})`);
+      g.addColorStop(1, `rgba(${o.col}, 0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // 3) Ağacın zemine düşen sıcak yansıması (ağaç büyüdükçe güçlenir)
+    if (t > 2.2) {
+      const treeCx = offX + cols * cellW / 2;
+      const grow = clamp((t - 2.2) / 4.5, 0, 1) * fade;
+      const rw = cols * cellW * 0.62;
+      const rh = Math.max(45, H * 0.09);
+      ctx.save();
+      ctx.translate(treeCx, groundY + rh * 0.25);
+      ctx.scale(1, rh / rw);
+      const rg = ctx.createRadialGradient(0, 0, 0, 0, 0, rw);
+      rg.addColorStop(0, `rgba(255, 198, 105, ${0.14 * grow})`);
+      rg.addColorStop(0.45, `rgba(55, 165, 100, ${0.09 * grow})`);
+      rg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = rg;
+      ctx.beginPath(); ctx.arc(0, 0, rw, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // 4) İnce parlayan yıldızlar
+    for (const s of twinkles) {
+      const a = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(sec * s.sp + s.ph));
+      ctx.fillStyle = `rgba(${s.col}, ${a * 0.85})`;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.s * 0.65, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // 5) Zarif kayan yıldız
+    if (!shooting && Math.random() < dt * 0.09) {
+      shooting = { x: rnd(W * 0.12, W * 0.78), y: rnd(H * 0.04, H * 0.24), vx: rnd(520, 760), vy: rnd(140, 260), life: 0 };
+    }
+    if (shooting) {
+      const s = shooting; s.life += dt; s.x += s.vx * dt; s.y += s.vy * dt;
+      const a = Math.max(0, 1 - s.life / 0.95);
+      const tail = 0.14;
+      const g = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * tail, s.y - s.vy * tail);
+      g.addColorStop(0, `rgba(255, 250, 235, ${a * 0.9})`);
+      g.addColorStop(1, 'rgba(255, 250, 235, 0)');
+      ctx.strokeStyle = g; ctx.lineWidth = 1.25;
+      ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * tail, s.y - s.vy * tail); ctx.stroke();
+      if (a <= 0) shooting = null;
+    }
+
+    ctx.restore();
+  }
+
+  // ------------------------------------------------------------ Eslem yazısı
+  const NAME_T = 11.4;
+  function drawTitle(t, sec, fade) {
+    if (t < NAME_T) return;
+    const p = clamp((t - NAME_T) / 2.0, 0, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    const drift = (1 - ease) * 14;
+
+    ctx.save();
+    ctx.globalAlpha = fade * ease;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (layout === 'side') {
+      const cx = sideFree * 0.5;
+      const cy = H * 0.44 + drift;
+      const maxW = sideFree * 0.82;
+      const big = clamp(Math.min(maxW * 0.24, H * 0.072), 28, 66);
+      const sub = clamp(big * 0.44, 15, 28);
+
+      // üst ince altın çizgi + küçük elmas
+      const lw = Math.min(maxW * 0.34, 95) * ease;
+      const topY = cy - big * 1.05;
+      const lg1 = ctx.createLinearGradient(cx - lw, 0, cx + lw, 0);
+      lg1.addColorStop(0, 'rgba(245, 206, 115, 0)');
+      lg1.addColorStop(0.5, 'rgba(245, 206, 115, 0.75)');
+      lg1.addColorStop(1, 'rgba(245, 206, 115, 0)');
+      ctx.fillStyle = lg1;
+      ctx.fillRect(cx - lw, topY, lw * 2, 1);
+      ctx.fillStyle = 'rgba(255, 232, 168, 0.9)';
+      ctx.beginPath();
+      ctx.moveTo(cx, topY - 4); ctx.lineTo(cx + 4, topY + 0.5);
+      ctx.lineTo(cx, topY + 5); ctx.lineTo(cx - 4, topY + 0.5);
+      ctx.closePath(); ctx.fill();
+
+      // "Eslem’in" — altın italik başlık
+      ctx.font = `italic 600 ${big}px "Cormorant Garamond", Georgia, serif`;
+      const gg = ctx.createLinearGradient(cx - big * 2, cy - big * 0.8, cx + big * 2, cy);
+      gg.addColorStop(0, '#fff5d6');
+      gg.addColorStop(0.45, '#f4c762');
+      gg.addColorStop(0.75, '#ffe8a8');
+      gg.addColorStop(1, '#c8922c');
+      ctx.shadowColor = 'rgba(255, 205, 100, 0.42)';
+      ctx.shadowBlur = big * 0.35;
+      ctx.fillStyle = gg;
+      ctx.fillText('Eslem’in', cx, cy - big * 0.35);
+      ctx.shadowBlur = 0;
+
+      // "ağacına ulaşmaya" / "hak kazandınız"
+      ctx.font = `500 ${sub}px "Cormorant Garamond", Georgia, serif`;
+      if ('letterSpacing' in ctx) ctx.letterSpacing = `${sub * 0.06}px`;
+      ctx.fillStyle = 'rgba(238, 242, 250, 0.92)';
+      ctx.fillText('ağacına ulaşmaya', cx, cy + sub * 1.15);
+      ctx.fillText('hak kazandınız', cx, cy + sub * 2.45);
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+
+      // alt ince altın çizgi
+      const botY = cy + sub * 3.5;
+      ctx.fillStyle = lg1;
+      ctx.fillRect(cx - lw * 0.85, botY, lw * 1.7, 1);
+
+      // hafif parıltılar
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 6; i++) {
+        const a = (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(sec * 2.0 + i * 1.9))) * ease;
+        const sx = cx + Math.cos(i * 2.1 + 0.4) * Math.min(maxW * 0.42, 130);
+        const sy = cy + Math.sin(i * 2.1 + 0.4) * big * 1.15;
+        const r = clamp(big * 0.08, 3, 5.5) * a;
+        ctx.fillStyle = `rgba(255, 232, 175, ${a * 0.75})`;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy - r * 2); ctx.lineTo(sx + r * 0.25, sy - r * 0.25); ctx.lineTo(sx + r * 2, sy);
+        ctx.lineTo(sx + r * 0.25, sy + r * 0.25); ctx.lineTo(sx, sy + r * 2); ctx.lineTo(sx - r * 0.25, sy + r * 0.25);
+        ctx.lineTo(sx - r * 2, sy); ctx.lineTo(sx - r * 0.25, sy - r * 0.25); ctx.closePath(); ctx.fill();
+      }
+    } else {
+      const top = offY + rows * cellH * 0.89;
+      const availH = Math.max(80, H - top);
+      const cx = W / 2;
+      const cy = top + availH * 0.48 + drift;
+      const big = clamp(Math.min(W * 0.082, availH * 0.34), 22, 46);
+      const sub = clamp(big * 0.56, 14, 24);
+
+      // üst ince çizgi
+      const lw = Math.min(W * 0.22, 110) * ease;
+      const lg1 = ctx.createLinearGradient(cx - lw, 0, cx + lw, 0);
+      lg1.addColorStop(0, 'rgba(245, 206, 115, 0)');
+      lg1.addColorStop(0.5, 'rgba(245, 206, 115, 0.7)');
+      lg1.addColorStop(1, 'rgba(245, 206, 115, 0)');
+      ctx.fillStyle = lg1;
+      ctx.fillRect(cx - lw, cy - big * 0.92, lw * 2, 1);
+
+      // "Eslem’in ağacına"
+      ctx.font = `italic 600 ${big}px "Cormorant Garamond", Georgia, serif`;
+      const gg = ctx.createLinearGradient(cx - W * 0.25, cy - big * 0.5, cx + W * 0.25, cy);
+      gg.addColorStop(0, '#fff5d6'); gg.addColorStop(0.5, '#f4c762'); gg.addColorStop(1, '#c8922c');
+      ctx.shadowColor = 'rgba(255, 205, 100, 0.4)';
+      ctx.shadowBlur = big * 0.3;
+      ctx.fillStyle = gg;
+      ctx.fillText('Eslem’in ağacına', cx, cy - sub * 0.55);
+      ctx.shadowBlur = 0;
+
+      // "ulaşmaya hak kazandınız"
+      ctx.font = `500 ${sub}px "Cormorant Garamond", Georgia, serif`;
+      if ('letterSpacing' in ctx) ctx.letterSpacing = `${sub * 0.06}px`;
+      ctx.fillStyle = 'rgba(238, 242, 250, 0.92)';
+      ctx.fillText('ulaşmaya hak kazandınız', cx, cy + sub * 0.95);
+      if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    }
+
+    ctx.restore();
   }
 
   // ------------------------------------------------------------------ döngü
@@ -502,7 +1011,9 @@
     if (t > LOOP - 2.4) fade = clamp((LOOP - 0.7 - t) / 1.7, 0, 1);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    const dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now;
+    ctx.drawImage(bgCanvas, 0, 0, W, H);
+    drawSkyFx(sec, dt, t, fade);
     ctx.globalAlpha = fade;
     ctx.drawImage(scene, 0, 0, W, H);
 
@@ -524,18 +1035,41 @@
       g.addColorStop(0, 'rgba(255,205,90,.35)'); g.addColorStop(1, 'rgba(255,205,90,0)');
       ctx.globalAlpha = fade * clamp((t - 4.8) / 0.6, 0, 1);
       ctx.fillStyle = g; ctx.fillRect(gx - rr, gy - rr, rr * 2, rr * 2);
+      // parıltı ışınları
+      ctx.save(); ctx.translate(gx, gy); ctx.rotate(sec * 0.15);
+      for (let i = 0; i < 8; i++) {
+        const len = rr * (i % 2 ? 0.75 : 1.5) * (0.85 + 0.15 * Math.sin(sec * 3 + i));
+        const lg = ctx.createLinearGradient(0, 0, len, 0);
+        lg.addColorStop(0, 'rgba(255,235,170,.55)'); lg.addColorStop(1, 'rgba(255,235,170,0)');
+        ctx.fillStyle = lg;
+        ctx.beginPath(); ctx.moveTo(0, -1.4); ctx.lineTo(len, 0); ctx.lineTo(0, 1.4); ctx.fill();
+        ctx.rotate(Math.PI / 4);
+      }
+      ctx.restore();
     }
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
 
-    // kar
-    const dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now;
+    drawTitle(t, sec, fade);
+
+    // kar (derinlikli)
     for (const f of snow) {
       f.y += f.vy * dt;
-      if (f.y > H + 8) Object.assign(f, flake(false));
+      f.x += f.vx * dt;
+      if (f.y > H + 12) Object.assign(f, flake(false));
+      if (f.x < -12) f.x = W + 12;
+      if (f.x > W + 12) f.x = -12;
       const x = f.x + Math.sin(sec * f.fr + f.ph) * f.amp;
-      ctx.fillStyle = `rgba(235,242,255,${f.a})`;
-      ctx.fillRect(x, f.y, f.s, f.s);
+      if (f.soft) {
+        const rg = ctx.createRadialGradient(x, f.y, 0, x, f.y, f.s * 1.9);
+        rg.addColorStop(0, `rgba(235,244,255,${f.a * 0.65})`);
+        rg.addColorStop(1, 'rgba(235,244,255,0)');
+        ctx.fillStyle = rg;
+        ctx.beginPath(); ctx.arc(x, f.y, f.s * 1.9, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = `rgba(235,242,255,${f.a})`;
+        ctx.beginPath(); ctx.arc(x, f.y, f.s * 0.65, 0, Math.PI * 2); ctx.fill();
+      }
     }
     requestAnimationFrame(frame);
   }
@@ -548,16 +1082,26 @@
   const input = document.getElementById('pw');
   const msg = document.getElementById('msg');
   const box = document.getElementById('box');
+  const vidWrap = document.getElementById('vidWrap');
+  const eslemVid = document.getElementById('eslemVid');
   function tryUnlock(ev) {
     ev.preventDefault();
     const v = input.value.trim().toLocaleLowerCase('tr-TR');
     if (v === 'berat') {
+      eslemVid.pause();
       gate.classList.add('hide');
       setTimeout(() => gate.remove(), 700);
       resize();
       start = performance.now() - T_OFFSET * 1000; lastT = 0; lastNow = performance.now();
       requestAnimationFrame(frame);
+    } else if (v === 'eslem') {
+      msg.textContent = '';
+      vidWrap.classList.add('show');
+      eslemVid.currentTime = 0;
+      eslemVid.play().catch(() => {});
     } else {
+      eslemVid.pause();
+      vidWrap.classList.remove('show');
       msg.textContent = 'Kurulduğunu biliyorum ama doğru cevabın o olmadığını sen de biliyorsun';
       box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
       input.select();
