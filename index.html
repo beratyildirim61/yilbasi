@@ -25,10 +25,17 @@
     box-shadow: 0 24px 70px rgba(0,0,0,.7), 0 0 50px rgba(255,205,95,.1), inset 0 1px 0 rgba(255,255,255,.12);
   }
   #hud {
-    position: fixed; top: 18px; right: 18px; z-index: 5; display: flex; gap: 8px;
+    position: fixed; top: calc(min(3.2vh, 28px) + 12px); right: 18px; z-index: 6; display: flex; gap: 8px;
     opacity: 0; pointer-events: none; transition: opacity .8s ease;
   }
   #hud.show { opacity: 1; pointer-events: auto; }
+  .bar {
+    position: fixed; left: 0; right: 0; height: min(3.2vh, 28px); background: #010205; z-index: 5;
+    pointer-events: none; transition: transform 1.2s cubic-bezier(.22,1,.36,1);
+  }
+  .bar.top { top: 0; transform: translateY(-100%); border-bottom: 1px solid rgba(255,220,140,.08); }
+  .bar.bot { bottom: 0; transform: translateY(100%); border-top: 1px solid rgba(255,220,140,.08); }
+  body.cinema .bar { transform: translateY(0); }
   #hud button {
     padding: 8px 13px; border-radius: 999px; border: 1px solid rgba(255,224,150,.22);
     background: rgba(8,14,28,.55); color: #f3e9d2; font-size: 13px; cursor: pointer;
@@ -37,7 +44,7 @@
   }
   #hud button:hover { background: rgba(255,210,115,.16); border-color: rgba(255,224,150,.55); transform: translateY(-1px); }
   #hint {
-    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 5;
+    position: fixed; bottom: calc(min(3.2vh, 28px) + 12px); left: 50%; transform: translateX(-50%); z-index: 6;
     padding: 6px 14px; border-radius: 999px; font-size: 12px; letter-spacing: .04em;
     color: rgba(240,232,212,.78); background: rgba(6,12,24,.45); border: 1px solid rgba(255,255,255,.1);
     backdrop-filter: blur(8px); pointer-events: none; opacity: 0; transition: opacity 1s ease;
@@ -69,6 +76,8 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<div class="bar top"></div>
+<div class="bar bot"></div>
 <div id="hud">
   <button id="btnMusic" type="button" title="Müzik kutusu">🔊 Müzik</button>
   <button id="btnFw" type="button" title="Havai fişek gösterisi">🎆 Fişek</button>
@@ -1038,42 +1047,147 @@
     ctx.restore();
   }
 
+  // ------------------------------------------------ dilek fenerleri + korlar
+  const lanterns = [], embers = [];
+  function initFestive() {
+    lanterns.length = 0;
+    for (let i = 0; i < 16; i++) lanterns.push(makeLantern(true));
+    embers.length = 0;
+    for (let i = 0; i < 38; i++) embers.push(makeEmber(true));
+  }
+  function makeLantern(anyY) {
+    const z = Math.random();
+    return {
+      x: Math.random() * W,
+      y: anyY ? rnd(H * 0.08, groundY) : groundY + rnd(10, 60),
+      vy: 6 + z * 11, amp: rnd(8, 22), ph: Math.random() * 6.28, fr: rnd(0.2, 0.5),
+      s: 4.5 + z * 6.5, a: 0.28 + z * 0.45
+    };
+  }
+  function makeEmber(anyY) {
+    const treeCx = offX + cols * cellW / 2;
+    return {
+      x: treeCx + rnd(-cols * cellW * 0.42, cols * cellW * 0.42),
+      y: anyY ? rnd(offY, groundY) : groundY - rnd(0, 40),
+      vy: rnd(14, 34), vx: rnd(-10, 10), ph: Math.random() * 6.28,
+      s: rnd(1.0, 2.3), a: rnd(0.3, 0.8),
+      col: Math.random() < 0.7 ? '255,212,115' : '255,165,120'
+    };
+  }
+  function drawLanterns(sec, dt, t) {
+    const vis = unlocked ? clamp((t - 1.5) / 3.0, 0.2, 1) : 0.35;
+    ctx.save();
+    for (const l of lanterns) {
+      l.y -= l.vy * dt;
+      if (l.y < -30) Object.assign(l, makeLantern(false));
+      const x = l.x + Math.sin(sec * l.fr + l.ph) * l.amp;
+      const flick = 0.85 + 0.15 * Math.sin(sec * 5.2 + l.ph);
+      const a = l.a * vis * flick;
+      // yumuşak sıcak hale
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(x, l.y, 0, x, l.y, l.s * 3.8);
+      g.addColorStop(0, `rgba(255,195,95,${a * 0.65})`);
+      g.addColorStop(0.45, `rgba(255,140,55,${a * 0.22})`);
+      g.addColorStop(1, 'rgba(255,120,40,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, l.y, l.s * 3.8, 0, Math.PI * 2); ctx.fill();
+      // fener gövdesi
+      ctx.globalCompositeOperation = 'source-over';
+      const lg = ctx.createLinearGradient(x, l.y - l.s, x, l.y + l.s * 0.8);
+      lg.addColorStop(0, `rgba(255,145,55,${a * 0.85})`);
+      lg.addColorStop(0.6, `rgba(255,210,115,${a})`);
+      lg.addColorStop(1, `rgba(255,248,210,${a})`);
+      ctx.fillStyle = lg;
+      ctx.beginPath();
+      ctx.ellipse(x, l.y, l.s * 0.55, l.s * 0.78, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+  function drawEmbers(sec, dt, t) {
+    if (!unlocked || t < 3.0) return;
+    const vis = clamp((t - 3.0) / 3.0, 0, 1);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const e of embers) {
+      e.y -= e.vy * dt;
+      e.x += (e.vx + Math.sin(sec * 1.4 + e.ph) * 14) * dt;
+      if (e.y < offY - 20) Object.assign(e, makeEmber(false));
+      const tw = 0.5 + 0.5 * Math.sin(sec * 4.5 + e.ph);
+      const a = e.a * vis * tw;
+      const g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.s * 3);
+      g.addColorStop(0, `rgba(${e.col},${a})`);
+      g.addColorStop(1, `rgba(${e.col},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.s * 3, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  let skyFlash = 0, nextAutoFw = 16.5;
+
   const fireworks = [], fwParticles = [], sparks = [];
   const FW_PAL = [
     ['255,220,125', '255,248,210'],
     ['255,165,180', '255,230,210'],
     ['150,215,255', '235,248,255'],
     ['135,240,185', '230,255,240'],
-    ['255,190,110', '255,120,130']
+    ['255,190,110', '255,120,130'],
+    ['225,185,255', '255,235,205']
   ];
 
-  function launchFirework(tx, ty) {
-    const sx = tx + rnd(-60, 60);
+  function launchFirework(tx, ty, big) {
+    const sx = tx + rnd(-70, 70);
     const sy = H + 10;
     const dist = Math.hypot(tx - sx, ty - sy);
-    const dur = clamp(dist / 900, 0.45, 0.85);
-    fireworks.push({ sx, sy, tx, ty, x: sx, y: sy, t: 0, dur, pal: pick(FW_PAL), trail: [] });
+    const dur = clamp(dist / 880, 0.48, 0.9);
+    fireworks.push({ sx, sy, tx, ty, x: sx, y: sy, t: 0, dur, pal: pick(FW_PAL), trail: [], big: !!big });
   }
 
-  function burstFirework(x, y, pal) {
-    const count = 58;
+  function burstFirework(x, y, pal, big) {
+    const count = big ? 84 : 62;
+    const scale = big ? 1.28 : 1.0;
+    skyFlash = Math.min(0.22, skyFlash + (big ? 0.14 : 0.08));
     for (let i = 0; i < count; i++) {
-      const a = (Math.PI * 2 * i) / count + rnd(-0.08, 0.08);
-      const sp = rnd(55, 225) * (Math.random() < 0.25 ? 0.55 : 1);
+      const a = (Math.PI * 2 * i) / count + rnd(-0.07, 0.07);
+      const ring = i % 3 === 0 ? 0.58 : 1.0;
+      const sp = rnd(65, 240) * ring * scale;
       fwParticles.push({
         x, y, px: x, py: y,
         vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-        life: 0, max: rnd(1.1, 2.0),
-        col: Math.random() < 0.7 ? pal[0] : pal[1],
-        sz: rnd(1.2, 2.4), glitter: Math.random() < 0.35
+        life: 0, max: rnd(1.3, 2.4),
+        col: ring < 1 ? pal[1] : pal[0],
+        sz: rnd(1.3, 2.7), glitter: Math.random() < 0.45, willow: big && ring === 1
       });
     }
     playChime();
   }
 
+  function launchGrandSalvo() {
+    const shots = [
+      [0.20, 0.24, false, 0],
+      [0.80, 0.22, false, 320],
+      [0.32, 0.16, true,  720],
+      [0.70, 0.17, true,  1080],
+      [0.50, 0.14, true,  1520],
+      [0.16, 0.30, false, 1880],
+      [0.84, 0.28, false, 2040]
+    ];
+    shots.forEach(([rx, ry, big, delay]) => setTimeout(() => {
+      if (unlocked) launchFirework(W * rx, H * ry, big);
+    }, delay));
+  }
+
   function updateFireworks(dt, sec) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
+    if (skyFlash > 0.002) {
+      skyFlash = Math.max(0, skyFlash - dt * 0.45);
+      const fg = ctx.createRadialGradient(W * 0.5, H * 0.25, 0, W * 0.5, H * 0.25, Math.max(W, H) * 0.65);
+      fg.addColorStop(0, `rgba(255,225,165,${skyFlash})`);
+      fg.addColorStop(1, 'rgba(255,225,165,0)');
+      ctx.fillStyle = fg; ctx.fillRect(0, 0, W, H);
+    }
     for (let i = fireworks.length - 1; i >= 0; i--) {
       const f = fireworks[i];
       f.t += dt;
@@ -1082,18 +1196,18 @@
       f.x = f.sx + (f.tx - f.sx) * ease;
       f.y = f.sy + (f.ty - f.sy) * ease;
       f.trail.push([f.x, f.y]);
-      if (f.trail.length > 10) f.trail.shift();
+      if (f.trail.length > 12) f.trail.shift();
       for (let j = 1; j < f.trail.length; j++) {
         const a = j / f.trail.length;
-        ctx.strokeStyle = `rgba(${f.pal[0]},${a * 0.75})`;
-        ctx.lineWidth = a * 2.2;
+        ctx.strokeStyle = `rgba(${f.pal[0]},${a * 0.8})`;
+        ctx.lineWidth = a * (f.big ? 2.8 : 2.2);
         ctx.beginPath();
         ctx.moveTo(f.trail[j - 1][0], f.trail[j - 1][1]);
         ctx.lineTo(f.trail[j][0], f.trail[j][1]);
         ctx.stroke();
       }
       if (p >= 1) {
-        burstFirework(f.tx, f.ty, f.pal);
+        burstFirework(f.tx, f.ty, f.pal, f.big);
         fireworks.splice(i, 1);
       }
     }
@@ -1102,17 +1216,18 @@
       p.life += dt;
       if (p.life >= p.max) { fwParticles.splice(i, 1); continue; }
       p.px = p.x; p.py = p.y;
-      p.vx *= Math.pow(0.24, dt);
-      p.vy = p.vy * Math.pow(0.24, dt) + 52 * dt;
+      const drag = p.willow ? 0.18 : 0.25;
+      p.vx *= Math.pow(drag, dt);
+      p.vy = p.vy * Math.pow(drag, dt) + (p.willow ? 72 : 52) * dt;
       p.x += p.vx * dt; p.y += p.vy * dt;
       const k = 1 - p.life / p.max;
-      const flick = p.glitter ? (0.4 + 0.6 * Math.sin(sec * 24 + i)) : 1;
+      const flick = p.glitter ? (0.35 + 0.65 * Math.sin(sec * 26 + i)) : 1;
       const a = k * k * flick;
-      ctx.strokeStyle = `rgba(${p.col},${a * 0.85})`;
+      ctx.strokeStyle = `rgba(${p.col},${a * 0.9})`;
       ctx.lineWidth = p.sz * k;
       ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(p.x, p.y); ctx.stroke();
       ctx.fillStyle = `rgba(255,252,240,${a})`;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.sz * 0.7 * k, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.sz * 0.72 * k, 0, Math.PI * 2); ctx.fill();
     }
     for (let i = sparks.length - 1; i >= 0; i--) {
       const s = sparks[i];
@@ -1183,12 +1298,33 @@
     playBell(base, 0.035, 0.85);
     setTimeout(() => playBell(base * 1.25, 0.022, 0.7), 65);
   }
+  function playPad(freqs, dur) {
+    if (!audioCtx || !musicOn) return;
+    const now = audioCtx.currentTime;
+    freqs.forEach(freq => {
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.linearRampToValueAtTime(0.012, now + 0.55);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+      g.connect(audioCtx.destination);
+      const o = audioCtx.createOscillator();
+      o.type = 'sine'; o.frequency.setValueAtTime(freq, now);
+      o.connect(g); o.start(now); o.stop(now + dur + 0.1);
+    });
+  }
+  const CHORDS = [
+    [130.81, 196.00, 261.63], // C
+    [174.61, 220.00, 261.63], // F
+    [146.83, 220.00, 293.66], // Dm
+    [196.00, 246.94, 293.66]  // G
+  ];
   function scheduleNote() {
     if (!musicOn) return;
     const [f, beats] = MELODY[noteIdx % MELODY.length];
+    if (noteIdx % 6 === 0) playPad(CHORDS[((noteIdx / 6) | 0) % CHORDS.length], 2.9);
     noteIdx++;
-    playBell(f, 0.055, 1.35);
-    if (noteIdx % 3 === 1) playBell(f * 0.5, 0.025, 1.8);
+    playBell(f, 0.055, 1.4);
+    if (noteIdx % 3 === 1) playBell(f * 0.5, 0.025, 1.85);
     musicTimer = setTimeout(scheduleNote, beats * 430);
   }
   function setMusic(on) {
@@ -1204,8 +1340,8 @@
   function frame(now) {
     const dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now;
     const sec = now / 1000;
-    const t = unlocked ? ((now - start) / 1000) % LOOP : 0;
-    if (unlocked && t < lastT) { buildScene(); finaleFired = false; }
+    // Tekrar düğmesine basılmadıkça baştan başlamaz!
+    const t = unlocked ? (now - start) / 1000 : 0;
     lastT = t;
 
     if (unlocked) {
@@ -1244,23 +1380,38 @@
 
       if (!finaleFired && t >= NAME_T) {
         finaleFired = true;
-        launchFirework(W * 0.24, H * 0.22);
-        setTimeout(() => launchFirework(W * 0.78, H * 0.19), 380);
-        setTimeout(() => launchFirework(W * 0.66, H * 0.28), 820);
+        launchGrandSalvo();
+        nextAutoFw = t + 5.2;
+      }
+      if (finaleFired && t >= nextAutoFw) {
+        nextAutoFw = t + rnd(4.2, 6.8);
+        const side = Math.random() < 0.5 ? rnd(0.14, 0.34) : rnd(0.68, 0.88);
+        launchFirework(W * side, H * rnd(0.15, 0.32), Math.random() < 0.35);
       }
     }
 
-    // kompozit + bloom
-    let fade = 1;
-    if (unlocked && t > LOOP - 2.4) fade = clamp((LOOP - 0.7 - t) / 1.7, 0, 1);
+    // filmsel kamera yaklaşması (dolly-in)
+    const camP = unlocked ? clamp(t / 12.5, 0, 1) : 0;
+    const camEase = 1 - Math.pow(1 - camP, 3);
+    const camScale = unlocked ? (0.945 + 0.055 * camEase + 0.004 * Math.sin(sec * 0.35)) : 1;
+
+    ctx.save();
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
     ctx.drawImage(bgCanvas, 0, 0, W, H);
-    drawSkyFx(sec, dt, t, fade);
-    drawOrbiters(sec, dt, t, fade, false);
+    drawSkyFx(sec, dt, t, 1);
+    drawLanterns(sec, dt, t);
+
+    // kamera dönüşümü sahne katmanına uygulanır
+    ctx.save();
+    ctx.translate(W / 2, H * 0.52);
+    ctx.scale(camScale, camScale);
+    ctx.translate(-W / 2, -H * 0.52);
+
+    drawOrbiters(sec, dt, t, 1, false);
 
     if (unlocked) {
-      ctx.globalAlpha = fade;
+      ctx.globalAlpha = 1;
       ctx.drawImage(scene, 0, 0, W, H);
 
       const ba = bloomA.getContext('2d'), bb = bloomB.getContext('2d');
@@ -1270,35 +1421,48 @@
       bb.drawImage(bloomA, 0, 0, bloomB.width, bloomB.height);
       ctx.globalCompositeOperation = 'lighter';
       ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-      ctx.globalAlpha = 0.2 * fade; ctx.drawImage(bloomA, 0, 0, W, H);
-      ctx.globalAlpha = 0.32 * fade; ctx.drawImage(bloomB, 0, 0, W, H);
+      ctx.globalAlpha = 0.22; ctx.drawImage(bloomA, 0, 0, W, H);
+      ctx.globalAlpha = 0.36; ctx.drawImage(bloomB, 0, 0, W, H);
 
-      // yıldız halesi
-      if (t > 4.8) {
+      // yıldız halesi + ateşlenme dalgası + hacimsel ışık hüzmeleri
+      if (t > 4.75) {
         const gx = offX + cols * cellW / 2, gy = offY + (92 / VH) * rows * cellH;
-        const rr = cols * cellW * (0.09 + 0.01 * Math.sin(sec * 2.2));
+        const stAge = t - 4.75;
+        const rr = cols * cellW * (0.105 + 0.014 * Math.sin(sec * 2.2));
         const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, rr);
-        g.addColorStop(0, 'rgba(255,205,90,.35)'); g.addColorStop(1, 'rgba(255,205,90,0)');
-        ctx.globalAlpha = fade * clamp((t - 4.8) / 0.6, 0, 1);
+        g.addColorStop(0, 'rgba(255,215,105,.45)'); g.addColorStop(1, 'rgba(255,205,90,0)');
+        ctx.globalAlpha = clamp(stAge / 0.55, 0, 1);
         ctx.fillStyle = g; ctx.fillRect(gx - rr, gy - rr, rr * 2, rr * 2);
+
+        // şok dalgası halkası (yıldız yanınca bir kez yayılır)
+        if (stAge < 2.2) {
+          const sp = stAge / 2.2;
+          const sr = cols * cellW * (0.04 + sp * 0.52);
+          ctx.strokeStyle = `rgba(255,232,165,${(1 - sp) * (1 - sp) * 0.65})`;
+          ctx.lineWidth = (1 - sp) * 3.5;
+          ctx.beginPath(); ctx.arc(gx, gy, sr, 0, Math.PI * 2); ctx.stroke();
+        }
+
         // parıltı ışınları
-        ctx.save(); ctx.translate(gx, gy); ctx.rotate(sec * 0.15);
-        for (let i = 0; i < 8; i++) {
-          const len = rr * (i % 2 ? 0.75 : 1.5) * (0.85 + 0.15 * Math.sin(sec * 3 + i));
+        ctx.save(); ctx.translate(gx, gy); ctx.rotate(sec * 0.14);
+        for (let i = 0; i < 12; i++) {
+          const len = rr * (i % 2 ? 0.85 : 1.75) * (0.85 + 0.15 * Math.sin(sec * 2.8 + i));
           const lg = ctx.createLinearGradient(0, 0, len, 0);
-          lg.addColorStop(0, 'rgba(255,235,170,.55)'); lg.addColorStop(1, 'rgba(255,235,170,0)');
+          lg.addColorStop(0, 'rgba(255,240,180,.55)'); lg.addColorStop(1, 'rgba(255,235,170,0)');
           ctx.fillStyle = lg;
-          ctx.beginPath(); ctx.moveTo(0, -1.4); ctx.lineTo(len, 0); ctx.lineTo(0, 1.4); ctx.fill();
-          ctx.rotate(Math.PI / 4);
+          ctx.beginPath(); ctx.moveTo(0, -1.5); ctx.lineTo(len, 0); ctx.lineTo(0, 1.5); ctx.fill();
+          ctx.rotate(Math.PI / 6);
         }
         ctx.restore();
       }
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
-      drawOrbiters(sec, dt, t, fade, true);
-      drawTitle(t, sec, fade);
+      drawOrbiters(sec, dt, t, 1, true);
+      drawEmbers(sec, dt, t);
     }
+    ctx.restore(); // kamera sonu
 
+    if (unlocked) drawTitle(t, sec, 1);
     updateFireworks(dt, sec);
 
     // kar (derinlikli)
@@ -1320,24 +1484,21 @@
         ctx.beginPath(); ctx.arc(x, f.y, f.s * 0.65, 0, Math.PI * 2); ctx.fill();
       }
     }
+    ctx.restore();
     requestAnimationFrame(frame);
   }
 
   let rt;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(resize, 150); });
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { resize(); initFestive(); }, 150); });
   canvas.addEventListener('pointermove', e => { if (unlocked) addSparks(e.clientX, e.clientY, 2); });
   canvas.addEventListener('pointerdown', e => {
     if (!unlocked) return;
     addSparks(e.clientX, e.clientY, 12);
-    launchFirework(e.clientX, Math.min(e.clientY, H * 0.68));
+    launchFirework(e.clientX, Math.min(e.clientY, H * 0.68), Math.random() < 0.45);
   });
 
   document.getElementById('btnMusic').addEventListener('click', () => setMusic(!musicOn));
-  document.getElementById('btnFw').addEventListener('click', () => {
-    launchFirework(W * rnd(0.18, 0.35), H * rnd(0.16, 0.32));
-    setTimeout(() => launchFirework(W * rnd(0.65, 0.84), H * rnd(0.14, 0.3)), 280);
-    setTimeout(() => launchFirework(W * rnd(0.4, 0.6), H * rnd(0.12, 0.24)), 560);
-  });
+  document.getElementById('btnFw').addEventListener('click', launchGrandSalvo);
   document.getElementById('btnReplay').addEventListener('click', () => {
     start = performance.now(); lastT = 0; finaleFired = false; buildScene();
   });
@@ -1358,6 +1519,7 @@
       eslemVid.pause();
       gate.classList.add('hide');
       setTimeout(() => gate.remove(), 900);
+      document.body.classList.add('cinema');
       unlocked = true;
       finaleFired = false;
       start = performance.now() - T_OFFSET * 1000; lastT = 0; lastNow = performance.now();
@@ -1380,6 +1542,7 @@
   }
   document.getElementById('form').addEventListener('submit', tryUnlock);
   resize();
+  initFestive();
   requestAnimationFrame(frame);
   input.focus();
 })();
