@@ -6,7 +6,7 @@
 <title>Eslem'in Ağacı</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500;1,600&family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Cinzel:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #02040a; overflow: hidden; }
   canvas { display: block; width: 100vw; height: 100vh; cursor: pointer; }
@@ -25,8 +25,13 @@
     box-shadow: 0 24px 70px rgba(0,0,0,.7), 0 0 50px rgba(255,205,95,.1), inset 0 1px 0 rgba(255,255,255,.12);
   }
   #hud {
-    position: fixed; top: calc(min(3.2vh, 28px) + 12px); right: 18px; z-index: 6; display: flex; gap: 8px;
-    opacity: 0; pointer-events: none; transition: opacity .8s ease;
+    position: fixed; top: calc(min(3.2vh, 28px) + 14px); right: 20px; z-index: 6; display: flex; gap: 6px;
+    padding: 5px; border-radius: 999px;
+    background: linear-gradient(135deg, rgba(16, 26, 48, .52), rgba(6, 11, 24, .62));
+    border: 1px solid rgba(244, 206, 120, .26);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 242, 205, .18);
+    backdrop-filter: blur(16px) saturate(140%);
+    opacity: 0; pointer-events: none; transition: opacity .9s ease;
   }
   #hud.show { opacity: 1; pointer-events: auto; }
   .bar {
@@ -37,12 +42,90 @@
   .bar.bot { bottom: 0; transform: translateY(100%); border-top: 1px solid rgba(255,220,140,.08); }
   body.cinema .bar { transform: translateY(0); }
   #hud button {
-    padding: 8px 13px; border-radius: 999px; border: 1px solid rgba(255,224,150,.22);
-    background: rgba(8,14,28,.55); color: #f3e9d2; font-size: 13px; cursor: pointer;
-    backdrop-filter: blur(10px); transition: background .2s, transform .15s, border-color .2s;
-    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 13px; border-radius: 999px;
+    border: 1px solid rgba(244, 206, 120, .2);
+    background: linear-gradient(180deg, rgba(255, 240, 200, .07), rgba(255, 240, 200, .02));
+    color: #f4e6c6; font-size: 11.5px; font-weight: 500; letter-spacing: .09em; text-transform: uppercase;
+    font-family: "Cinzel", Georgia, serif; cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 245, 215, .16);
+    transition: all .25s ease;
   }
-  #hud button:hover { background: rgba(255,210,115,.16); border-color: rgba(255,224,150,.55); transform: translateY(-1px); }
+  #hud button svg { width: 14px; height: 14px; stroke: #f2cb72; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  #hud button:hover {
+    background: linear-gradient(180deg, rgba(245, 205, 110, .22), rgba(205, 150, 45, .12));
+    border-color: rgba(255, 224, 145, .62); color: #fff6dc;
+    box-shadow: 0 0 18px rgba(245, 200, 95, .28), inset 0 1px 0 rgba(255, 250, 225, .35);
+    transform: translateY(-1px);
+  }
+  #ctaBtn {
+    position: fixed; z-index: 6; transform: translate(-50%, -50%) translateY(10px);
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 11px 24px; border-radius: 999px; cursor: pointer;
+    font-family: "Cinzel", Georgia, serif; font-size: 12.5px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: #fff5d8;
+    background: linear-gradient(135deg, rgba(244, 198, 92, .22), rgba(165, 112, 24, .28));
+    border: 1px solid rgba(252, 218, 132, .58);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .48), 0 0 24px rgba(245, 198, 92, .24), inset 0 1px 0 rgba(255, 248, 220, .38);
+    opacity: 0; pointer-events: none; transition: opacity 1s ease, transform .8s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, background .25s ease;
+    overflow: hidden;
+  }
+  #ctaBtn::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(110deg, transparent 25%, rgba(255, 246, 212, .35) 50%, transparent 75%);
+    transform: translateX(-120%); animation: sheen 4.2s infinite ease-in-out;
+  }
+  @keyframes sheen { 0%, 55% { transform: translateX(-120%); } 100% { transform: translateX(130%); } }
+  #ctaBtn.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) translateY(0); }
+  #ctaBtn:hover {
+    background: linear-gradient(135deg, rgba(250, 210, 110, .38), rgba(195, 138, 36, .42));
+    border-color: rgba(255, 236, 175, .92);
+    box-shadow: 0 10px 34px rgba(0, 0, 0, .55), 0 0 36px rgba(255, 212, 108, .5), inset 0 1px 0 rgba(255, 252, 235, .55);
+    transform: translate(-50%, -50%) translateY(-2px);
+  }
+  #ctaBtn svg { width: 15px; height: 15px; stroke: #ffe194; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  #giftModal {
+    position: fixed; inset: 0; z-index: 12; display: flex; align-items: center; justify-content: center;
+    background: rgba(2, 5, 14, .74); backdrop-filter: blur(10px);
+    opacity: 0; pointer-events: none; transition: opacity .35s ease;
+  }
+  #giftModal.show { opacity: 1; pointer-events: auto; }
+  #giftCard {
+    position: relative; width: min(440px, 88vw); padding: 38px 32px 30px; text-align: center;
+    border-radius: 22px; color: #f6eedc;
+    background: #080e1e;
+    background-image: radial-gradient(ellipse at top, #182545 0%, #091022 68%, #060a16 100%);
+    border: 1px solid rgba(248, 212, 128, .5);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, .85), 0 0 65px rgba(245, 198, 92, .22), inset 0 1px 0 rgba(255, 245, 215, .32);
+    transform: scale(.92) translateY(12px); transition: transform .5s cubic-bezier(.22,1,.36,1);
+  }
+  #giftModal.show #giftCard { transform: scale(1) translateY(0); }
+  #giftCard .badge {
+    display: inline-block; font-family: "Cinzel", Georgia, serif; font-size: 11px; letter-spacing: .24em;
+    text-transform: uppercase; color: #f0c96e; margin-bottom: 10px;
+  }
+  #giftCard h2 {
+    margin: 0 0 14px; font-family: "Playfair Display", "Cormorant Garamond", Georgia, serif;
+    font-style: italic; font-size: 32px; font-weight: 700;
+    background: linear-gradient(135deg, #fff6da, #f3c45c, #ffe8aa); -webkit-background-clip: text; color: transparent;
+    text-shadow: 0 0 24px rgba(255, 206, 102, .35);
+  }
+  #giftCard p {
+    margin: 0 0 24px; font-family: "Cormorant Garamond", Georgia, serif; font-size: 20px; line-height: 1.55;
+    color: rgba(246, 240, 226, .92);
+  }
+  #giftCard .line {
+    width: 110px; height: 1px; margin: 0 auto 20px;
+    background: linear-gradient(90deg, transparent, rgba(245, 205, 115, .8), transparent);
+  }
+  #giftClose {
+    padding: 11px 28px; border-radius: 999px; cursor: pointer;
+    font-family: "Cinzel", Georgia, serif; font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+    color: #1c1300; background: linear-gradient(135deg, #ffe28c, #e5a524); border: 0;
+    box-shadow: 0 6px 22px rgba(240, 185, 60, .35); transition: transform .2s, filter .2s;
+  }
+  #giftClose:hover { transform: translateY(-1px); filter: brightness(1.08); }
   #hint {
     position: fixed; bottom: calc(min(3.2vh, 28px) + 12px); left: 50%; transform: translateX(-50%); z-index: 6;
     padding: 6px 14px; border-radius: 999px; font-size: 12px; letter-spacing: .04em;
@@ -79,9 +162,31 @@
 <div class="bar top"></div>
 <div class="bar bot"></div>
 <div id="hud">
-  <button id="btnMusic" type="button" title="Müzik kutusu">🔊 Müzik</button>
-  <button id="btnFw" type="button" title="Havai fişek gösterisi">🎆 Fişek</button>
-  <button id="btnReplay" type="button" title="Animasyonu baştan oynat">↻ Tekrar</button>
+  <button id="btnMusic" type="button" title="Müzik kutusu">
+    <svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path class="wave" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg>
+    <span>Müzik</span>
+  </button>
+  <button id="btnFw" type="button" title="Havai fişek gösterisi">
+    <svg viewBox="0 0 24 24"><path d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2L12 2z"/></svg>
+    <span>Fişek</span>
+  </button>
+  <button id="btnReplay" type="button" title="Animasyonu baştan oynat">
+    <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+    <span>Tekrar</span>
+  </button>
+</div>
+<button id="ctaBtn" type="button">
+  <svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+  <span>Hediyeni Aç</span>
+</button>
+<div id="giftModal">
+  <div id="giftCard">
+    <div class="badge">✦ Yılbaşı Sürprizi ✦</div>
+    <h2>Eslem’e Özel</h2>
+    <div class="line"></div>
+    <p>Bütün ışıklar senin için yandı…<br>Yeni yılda şansın, huzurun ve en güzel anıların hep seninle olsun ✨</p>
+    <button id="giftClose" type="button">Şöleni Başlat</button>
+  </div>
 </div>
 <div id="hint">Gökyüzüne tıkla: havai fişek ✨</div>
 <div id="gate">
@@ -706,14 +811,14 @@
         const alpha = sa / (n * 255);
         const minA = L.name === 'ground' ? 0.14 : 0.42;
         if (alpha < minA) continue;
-        const fadeMul = L.name === 'ground' ? Math.pow(alpha, 0.85) : 1;
-        const r = (sr / sa) * fadeMul, g = (sg / sa) * fadeMul, b = (sb / sa) * fadeMul;
-        const lum = (0.3 * r + 0.59 * g + 0.11 * b) / 255;
-        const mx = Math.max(r, g, b) / 255;
+        const gAlpha = L.name === 'ground' ? clamp((alpha - 0.14) / 0.72, 0, 1) : 1;
+        const r = sr / sa, g = sg / sa, b = sb / sa;
+        const lum = (0.3 * r + 0.59 * g + 0.11 * b) / 255 * gAlpha;
+        const mx = Math.max(r, g, b) / 255 * gAlpha;
         const ramp = L.ramp;
         const ch = ramp[clamp(Math.round((lum * 0.55 + mx * 0.45) * (ramp.length - 1) * 1.15), 1, ramp.length - 1)];
         const vx = (cx + 0.5) / cols * VW, vy = (cy + 0.5) / rows * VH;
-        const e = { ch, r, g, b, lay: L.name };
+        const e = { ch, r, g, b, lay: L.name, ga: gAlpha };
         if (L.lights) {
           let best = lights[0], bd = 1e9;
           for (const l of lights) { const d = Math.hypot(l.x - vx, l.y - vy); if (d < bd) { bd = d; best = l; } }
@@ -723,9 +828,14 @@
           if (L.tw) { e.tw = L.tw; e.ph = Math.random() * 6.28; e.sp = 2.5; }
         }
         e.flick = !!L.flick;
-        const k = e.lay === 'ground' ? 1.0 : 1.22;
-        e.fg = `rgb(${clamp(r * k, 0, 255) | 0},${clamp(g * k, 0, 255) | 0},${clamp(b * k, 0, 255) | 0})`;
-        e.bg = `rgb(${r * 0.26 | 0},${g * 0.26 | 0},${b * 0.26 | 0})`;
+        const k = e.lay === 'ground' ? 1.05 : 1.22;
+        if (e.lay === 'ground') {
+          e.fg = `rgba(${clamp(r * k, 0, 255) | 0},${clamp(g * k, 0, 255) | 0},${clamp(b * k, 0, 255) | 0},${(gAlpha * 0.92).toFixed(2)})`;
+          e.bg = gAlpha > 0.45 ? `rgba(${r * 0.24 | 0},${g * 0.24 | 0},${b * 0.28 | 0},${((gAlpha - 0.45) * 0.55).toFixed(2)})` : null;
+        } else {
+          e.fg = `rgb(${clamp(r * k, 0, 255) | 0},${clamp(g * k, 0, 255) | 0},${clamp(b * k, 0, 255) | 0})`;
+          e.bg = `rgb(${r * 0.26 | 0},${g * 0.26 | 0},${b * 0.26 | 0})`;
+        }
         const key = cy * cols + cx;
         let cell = map.get(key);
         if (!cell) {
@@ -811,28 +921,79 @@
     b.fillStyle = backGlow;
     b.fillRect(0, 0, W, H);
 
-    // 3) Uzak siluet dağ sırası (çok hafif, sis içinde kaybolan)
-    const drawMistRidge = (yBase, amp, f1, f2, seed, colTop, colBot) => {
+    // 3) Uzak siluet dağ sırası + sağ/sol ufukta ince ay ışıklı kar sırtı ve uzak çam ormanı
+    const drawMistRidge = (yBase, amp, f1, f2, seed, colTop, colBot, rimAlpha) => {
+      const pts = [];
       b.beginPath();
       b.moveTo(0, H);
       for (let x = 0; x <= W + 12; x += 12) {
-        const y = yBase
+        const rightLift = Math.max(0, (x - W * 0.58) / (W * 0.42)) * H * 0.042;
+        const y = yBase - rightLift
           - amp * 0.55 * Math.sin(x * f1 + seed)
           - amp * 0.28 * Math.sin(x * f2 + seed * 1.9)
           - amp * 0.17 * Math.cos(x * f2 * 2.1 - seed);
+        pts.push([x, y]);
         b.lineTo(x, y);
       }
       b.lineTo(W, H);
       b.closePath();
-      const rg = b.createLinearGradient(0, yBase - amp, 0, H);
+      const rg = b.createLinearGradient(0, yBase - amp - H * 0.05, 0, H);
       rg.addColorStop(0, colTop);
       rg.addColorStop(0.35, colBot);
       rg.addColorStop(1, '#020409');
       b.fillStyle = rg;
       b.fill();
+      if (rimAlpha) {
+        b.beginPath();
+        pts.forEach(([x, y], i) => i ? b.lineTo(x, y) : b.moveTo(x, y));
+        const rim = b.createLinearGradient(0, 0, W, 0);
+        rim.addColorStop(0, `rgba(170, 200, 240, ${rimAlpha * 0.5})`);
+        rim.addColorStop(0.55, `rgba(170, 200, 240, ${rimAlpha * 0.2})`);
+        rim.addColorStop(0.85, `rgba(195, 220, 255, ${rimAlpha})`);
+        rim.addColorStop(1, `rgba(160, 195, 240, ${rimAlpha * 0.4})`);
+        b.strokeStyle = rim;
+        b.lineWidth = 1.4;
+        b.stroke();
+      }
+      return pts;
     };
-    drawMistRidge(groundY - H * 0.08, H * 0.065, 0.0022, 0.0061, 0.8, 'rgba(22, 38, 68, 0.38)', 'rgba(8, 15, 30, 0.72)');
-    drawMistRidge(groundY - H * 0.03, H * 0.038, 0.0031, 0.0085, 2.7, 'rgba(16, 28, 52, 0.55)', 'rgba(6, 11, 22, 0.88)');
+    const farPts = drawMistRidge(groundY - H * 0.085, H * 0.065, 0.0022, 0.0061, 0.8, 'rgba(24, 42, 74, 0.42)', 'rgba(8, 15, 30, 0.74)', 0.14);
+    const nearPts = drawMistRidge(groundY - H * 0.032, H * 0.036, 0.0031, 0.0085, 2.7, 'rgba(18, 32, 58, 0.58)', 'rgba(6, 11, 22, 0.88)', 0.18);
+
+    // Uzak atmosferik çam ormanı silüetleri (özellikle sağ ufuk dengesi + sol uzak kenar)
+    const drawPineSilhouette = (x, baseY, h, col) => {
+      b.fillStyle = col;
+      const tiers = 4;
+      for (let t = 0; t < tiers; t++) {
+        const y0 = baseY - h * (1 - t * 0.21);
+        const y1 = baseY - h * (0.68 - t * 0.22);
+        const w = h * (0.14 + t * 0.085);
+        b.beginPath();
+        b.moveTo(x, y0);
+        b.lineTo(x + w, y1);
+        b.lineTo(x - w, y1);
+        b.closePath();
+        b.fill();
+      }
+    };
+    // sağ ve sol kanat çam silüetleri (sis içinde silik)
+    for (let i = 0; i < nearPts.length; i++) {
+      const [px, py] = nearPts[i];
+      const inRight = px > W * 0.70 && px < W * 0.99;
+      const inLeft = px > W * 0.01 && px < W * 0.19;
+      if (!inRight && !inLeft) continue;
+      if (Math.random() > (inRight ? 0.68 : 0.42)) continue;
+      const edgeProx = inRight ? (px - W * 0.70) / (W * 0.30) : (W * 0.19 - px) / (W * 0.19);
+      const h = rnd(18, 42) * (0.65 + edgeProx * 0.7);
+      const col = inRight ? 'rgba(9, 17, 34, 0.78)' : 'rgba(8, 15, 30, 0.62)';
+      drawPineSilhouette(px + rnd(-5, 5), py + 4, h, col);
+    }
+    // daha uzaktaki çok silik arka sıra çamlar
+    for (let i = 0; i < farPts.length; i++) {
+      const [px, py] = farPts[i];
+      if (px < W * 0.66 || Math.random() > 0.45) continue;
+      drawPineSilhouette(px + rnd(-4, 4), py + 3, rnd(12, 24), 'rgba(14, 26, 48, 0.45)');
+    }
 
     // 4) İnce ufuk sisi + karanlık yansıtıcı kış zemini
     const mist = b.createLinearGradient(0, groundY - H * 0.12, 0, groundY + H * 0.12);
@@ -933,25 +1094,27 @@
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
 
-    // 1) İpeksi, zengin kuzey ışığı (aurora) perdeleri — üst gökyüzünü doldurur
+    // 1) İpeksi, zengin kuzey ışığı (aurora) perdeleri — sağ gökyüzüne de zarifçe uzanan dalga
     for (let k = 0; k < 3; k++) {
-      const base = H * (0.11 + k * 0.055);
-      const amp = H * (k === 1 ? 0.036 : 0.048);
-      const col = k === 0 ? '60, 215, 185' : (k === 1 ? '100, 165, 245' : '145, 105, 235');
-      const g = ctx.createLinearGradient(0, base - H * 0.14, 0, base + H * 0.18);
+      const base = H * (0.11 + k * 0.065);
+      const amp = H * (k === 1 ? 0.042 : 0.052);
+      const col = k === 0 ? '60, 215, 185' : (k === 1 ? '100, 175, 248' : '155, 110, 240');
+      const g = ctx.createLinearGradient(0, base - H * 0.14, W * 0.15, base + H * 0.22);
       g.addColorStop(0, `rgba(${col}, 0)`);
-      g.addColorStop(0.32, `rgba(${col}, ${k === 0 ? 0.085 : 0.06})`);
-      g.addColorStop(0.65, `rgba(${col}, ${k === 0 ? 0.035 : 0.025})`);
+      g.addColorStop(0.32, `rgba(${col}, ${k === 0 ? 0.095 : 0.068})`);
+      g.addColorStop(0.68, `rgba(${col}, ${k === 0 ? 0.04 : 0.028})`);
       g.addColorStop(1, `rgba(${col}, 0)`);
       ctx.fillStyle = g;
       ctx.beginPath();
       for (let x = 0; x <= W; x += 20) {
-        const y = base + Math.sin(x * 0.0024 + sec * 0.2 + k * 1.9) * amp + Math.cos(x * 0.0052 - sec * 0.24) * amp * 0.42;
+        const rightDip = (k === 2 ? Math.max(0, (x - W * 0.45) / (W * 0.55)) * H * 0.14 : 0);
+        const y = base + rightDip + Math.sin(x * 0.0024 + sec * 0.2 + k * 1.9) * amp + Math.cos(x * 0.0052 - sec * 0.24) * amp * 0.42;
         x ? ctx.lineTo(x, y - H * 0.11) : ctx.moveTo(x, y - H * 0.11);
       }
       for (let x = W; x >= 0; x -= 20) {
-        const y = base + Math.sin(x * 0.0024 + sec * 0.2 + k * 1.9 + 0.55) * amp;
-        ctx.lineTo(x, y + H * 0.15);
+        const rightDip = (k === 2 ? Math.max(0, (x - W * 0.45) / (W * 0.55)) * H * 0.14 : 0);
+        const y = base + rightDip + Math.sin(x * 0.0024 + sec * 0.2 + k * 1.9 + 0.55) * amp;
+        ctx.lineTo(x, y + H * 0.16);
       }
       ctx.closePath();
       ctx.fill();
@@ -1021,11 +1184,38 @@
 
   // ------------------------------------------------------------ Eslem yazısı
   const NAME_T = 11.4;
+  let ctaShown = false;
+  function positionCta() {
+    const btn = document.getElementById('ctaBtn');
+    if (!btn) return;
+    const rect = canvas.getBoundingClientRect();
+    const sx = rect.width / W, sy = rect.height / H;
+    if (layout === 'side') {
+      const cx = sideFree * 0.5;
+      const cy = H * 0.40;
+      const maxW = sideFree * 0.82;
+      const big = clamp(Math.min(maxW * 0.23, H * 0.068), 28, 60);
+      const sub = clamp(big * 0.45, 15, 27);
+      const botY = cy + sub * 3.55;
+      btn.style.left = `${cx * sx}px`;
+      btn.style.top = `${(botY + 38) * sy}px`;
+    } else {
+      const top = offY + rows * cellH * 0.885;
+      const availH = Math.max(100, H - top);
+      btn.style.left = `${(W / 2) * sx}px`;
+      btn.style.top = `${Math.min(rect.height - 54, (top + availH * 0.8) * sy)}px`;
+    }
+  }
   function drawTitle(t, sec, fade) {
     if (t < NAME_T) return;
     const p = clamp((t - NAME_T) / 2.0, 0, 1);
     const ease = 1 - Math.pow(1 - p, 3);
     const drift = (1 - ease) * 14;
+    if (!ctaShown && t >= NAME_T + 0.9) {
+      ctaShown = true;
+      positionCta();
+      document.getElementById('ctaBtn').classList.add('show');
+    }
 
     ctx.save();
     ctx.globalAlpha = fade * ease;
@@ -1034,105 +1224,105 @@
 
     if (layout === 'side') {
       const cx = sideFree * 0.5;
-      const cy = H * 0.44 + drift;
+      const cy = H * 0.40 + drift;
       const maxW = sideFree * 0.82;
-      const big = clamp(Math.min(maxW * 0.24, H * 0.072), 28, 66);
-      const sub = clamp(big * 0.44, 15, 28);
+      const big = clamp(Math.min(maxW * 0.23, H * 0.068), 28, 60);
+      const sub = clamp(big * 0.45, 15, 27);
 
       // üst ince altın çizgi + küçük elmas
-      const lw = Math.min(maxW * 0.34, 95) * ease;
-      const topY = cy - big * 1.05;
+      const lw = Math.min(maxW * 0.36, 105) * ease;
+      const topY = cy - big * 1.08;
       const lg1 = ctx.createLinearGradient(cx - lw, 0, cx + lw, 0);
       lg1.addColorStop(0, 'rgba(245, 206, 115, 0)');
-      lg1.addColorStop(0.5, 'rgba(245, 206, 115, 0.75)');
+      lg1.addColorStop(0.5, 'rgba(245, 206, 115, 0.85)');
       lg1.addColorStop(1, 'rgba(245, 206, 115, 0)');
       ctx.fillStyle = lg1;
       ctx.fillRect(cx - lw, topY, lw * 2, 1);
-      ctx.fillStyle = 'rgba(255, 232, 168, 0.9)';
+      ctx.fillStyle = 'rgba(255, 238, 185, 0.95)';
       ctx.beginPath();
-      ctx.moveTo(cx, topY - 4); ctx.lineTo(cx + 4, topY + 0.5);
-      ctx.lineTo(cx, topY + 5); ctx.lineTo(cx - 4, topY + 0.5);
+      ctx.moveTo(cx, topY - 4.5); ctx.lineTo(cx + 4.5, topY + 0.5);
+      ctx.lineTo(cx, topY + 5.5); ctx.lineTo(cx - 4.5, topY + 0.5);
       ctx.closePath(); ctx.fill();
 
-      // "Eslem’in" — altın italik başlık
-      ctx.font = `italic 600 ${big}px "Cormorant Garamond", Georgia, serif`;
-      const gg = ctx.createLinearGradient(cx - big * 2, cy - big * 0.8, cx + big * 2, cy);
-      gg.addColorStop(0, '#fff5d6');
-      gg.addColorStop(0.45, '#f4c762');
-      gg.addColorStop(0.75, '#ffe8a8');
-      gg.addColorStop(1, '#c8922c');
-      ctx.shadowColor = 'rgba(255, 205, 100, 0.42)';
-      ctx.shadowBlur = big * 0.35;
+      // "Eslem’in" — şık, yüksek kontrastlı altın italik serif (Türkçe uyumlu)
+      ctx.font = `italic 700 ${big}px "Playfair Display", "Cormorant Garamond", Georgia, serif`;
+      const gg = ctx.createLinearGradient(cx - big * 2.2, cy - big * 0.9, cx + big * 2.2, cy);
+      gg.addColorStop(0, '#fff9e6');
+      gg.addColorStop(0.35, '#f6ca64');
+      gg.addColorStop(0.65, '#fff0be');
+      gg.addColorStop(1, '#c48a24');
+      ctx.shadowColor = 'rgba(255, 205, 95, 0.6)';
+      ctx.shadowBlur = big * 0.45;
       ctx.fillStyle = gg;
-      ctx.fillText('Eslem’in', cx, cy - big * 0.35);
+      ctx.fillText('Eslem’in', cx, cy - big * 0.32);
       ctx.shadowBlur = 0;
 
-      // "ağacına ulaşmaya" / "hak kazandınız" — sıcak şampanya tonu + yumuşak altın/beyaz parlama
-      ctx.font = `500 ${sub}px "Cormorant Garamond", Georgia, serif`;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = `${sub * 0.06}px`;
+      // "ağacına ulaşmaya" / "hak kazandınız" — sıcak şampanya serif + altın parlama
+      ctx.font = `italic 600 ${sub}px "Cormorant Garamond", Georgia, serif`;
+      if ('letterSpacing' in ctx) ctx.letterSpacing = `${sub * 0.05}px`;
       const sg = ctx.createLinearGradient(cx - maxW * 0.4, cy + sub * 0.8, cx + maxW * 0.4, cy + sub * 2.8);
-      sg.addColorStop(0, '#fff7e6');
-      sg.addColorStop(0.5, '#f7e6c4');
-      sg.addColorStop(1, '#fff8eb');
-      ctx.shadowColor = 'rgba(255, 224, 150, 0.52)';
-      ctx.shadowBlur = 14;
+      sg.addColorStop(0, '#fff9ec');
+      sg.addColorStop(0.5, '#f7e5bf');
+      sg.addColorStop(1, '#fff9ec');
+      ctx.shadowColor = 'rgba(255, 224, 150, 0.58)';
+      ctx.shadowBlur = 16;
       ctx.fillStyle = sg;
       ctx.fillText('ağacına ulaşmaya', cx, cy + sub * 1.15);
       ctx.fillText('hak kazandınız', cx, cy + sub * 2.45);
       ctx.shadowBlur = 0;
       if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 
-      // alt ince altın çizgi + küçük elmas
-      const botY = cy + sub * 3.5;
+      // alt ince altın çizgi
+      const botY = cy + sub * 3.55;
       ctx.fillStyle = lg1;
       ctx.fillRect(cx - lw * 0.85, botY, lw * 1.7, 1);
 
-      // tüm metni (alt satırlar dahil) çevreleyen zarif yıldız parçacıkları
+      // tüm metni çevreleyen zarif yıldız parçacıkları
       ctx.globalCompositeOperation = 'lighter';
       for (let i = 0; i < 12; i++) {
         const a = (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(sec * 2.1 + i * 1.7))) * ease;
         const ang = i * 2.39 + 0.3;
-        const sx = cx + Math.cos(ang) * Math.min(maxW * 0.48, 150);
-        const sy = cy + sub * 0.85 + Math.sin(ang) * (big * 1.55);
-        const r = clamp(big * (i % 3 === 0 ? 0.075 : 0.048), 2.2, 5.2) * a;
-        ctx.fillStyle = `rgba(255, 236, 185, ${a * 0.82})`;
+        const sx = cx + Math.cos(ang) * Math.min(maxW * 0.48, 155);
+        const sy = cy + sub * 0.9 + Math.sin(ang) * (big * 1.55);
+        const r = clamp(big * (i % 3 === 0 ? 0.075 : 0.048), 2.2, 5.0) * a;
+        ctx.fillStyle = `rgba(255, 236, 185, ${a * 0.85})`;
         ctx.beginPath();
         ctx.moveTo(sx, sy - r * 2); ctx.lineTo(sx + r * 0.25, sy - r * 0.25); ctx.lineTo(sx + r * 2, sy);
         ctx.lineTo(sx + r * 0.25, sy + r * 0.25); ctx.lineTo(sx, sy + r * 2); ctx.lineTo(sx - r * 0.25, sy + r * 0.25);
         ctx.lineTo(sx - r * 2, sy); ctx.lineTo(sx - r * 0.25, sy - r * 0.25); ctx.closePath(); ctx.fill();
       }
     } else {
-      const top = offY + rows * cellH * 0.89;
-      const availH = Math.max(80, H - top);
+      const top = offY + rows * cellH * 0.885;
+      const availH = Math.max(100, H - top);
       const cx = W / 2;
-      const cy = top + availH * 0.48 + drift;
-      const big = clamp(Math.min(W * 0.082, availH * 0.34), 22, 46);
-      const sub = clamp(big * 0.56, 14, 24);
+      const cy = top + availH * 0.3 + drift;
+      const big = clamp(Math.min(W * 0.072, availH * 0.28), 22, 42);
+      const sub = clamp(big * 0.58, 14, 23);
 
       // üst ince çizgi
       const lw = Math.min(W * 0.22, 110) * ease;
       const lg1 = ctx.createLinearGradient(cx - lw, 0, cx + lw, 0);
       lg1.addColorStop(0, 'rgba(245, 206, 115, 0)');
-      lg1.addColorStop(0.5, 'rgba(245, 206, 115, 0.7)');
+      lg1.addColorStop(0.5, 'rgba(245, 206, 115, 0.78)');
       lg1.addColorStop(1, 'rgba(245, 206, 115, 0)');
       ctx.fillStyle = lg1;
-      ctx.fillRect(cx - lw, cy - big * 0.92, lw * 2, 1);
+      ctx.fillRect(cx - lw, cy - big * 0.95, lw * 2, 1);
 
       // "Eslem’in ağacına"
-      ctx.font = `italic 600 ${big}px "Cormorant Garamond", Georgia, serif`;
+      ctx.font = `italic 700 ${big}px "Playfair Display", "Cormorant Garamond", Georgia, serif`;
       const gg = ctx.createLinearGradient(cx - W * 0.25, cy - big * 0.5, cx + W * 0.25, cy);
-      gg.addColorStop(0, '#fff5d6'); gg.addColorStop(0.5, '#f4c762'); gg.addColorStop(1, '#c8922c');
-      ctx.shadowColor = 'rgba(255, 205, 100, 0.45)';
-      ctx.shadowBlur = big * 0.32;
+      gg.addColorStop(0, '#fff8e2'); gg.addColorStop(0.5, '#f4c762'); gg.addColorStop(1, '#c8922c');
+      ctx.shadowColor = 'rgba(255, 205, 100, 0.55)';
+      ctx.shadowBlur = big * 0.4;
       ctx.fillStyle = gg;
-      ctx.fillText('Eslem’in ağacına', cx, cy - sub * 0.55);
+      ctx.fillText('Eslem’in ağacına', cx, cy - sub * 0.45);
       ctx.shadowBlur = 0;
 
       // "ulaşmaya hak kazandınız"
-      ctx.font = `500 ${sub}px "Cormorant Garamond", Georgia, serif`;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = `${sub * 0.06}px`;
-      ctx.shadowColor = 'rgba(255, 224, 150, 0.52)';
-      ctx.shadowBlur = 12;
+      ctx.font = `italic 600 ${sub}px "Cormorant Garamond", Georgia, serif`;
+      if ('letterSpacing' in ctx) ctx.letterSpacing = `${sub * 0.05}px`;
+      ctx.shadowColor = 'rgba(255, 224, 150, 0.55)';
+      ctx.shadowBlur = 14;
       ctx.fillStyle = '#faf0d7';
       ctx.fillText('ulaşmaya hak kazandınız', cx, cy + sub * 0.95);
       ctx.shadowBlur = 0;
@@ -1645,7 +1835,9 @@
   }
   function setMusic(on) {
     musicOn = on;
-    document.getElementById('btnMusic').textContent = on ? '🔊 Müzik' : '🔇 Sessiz';
+    const btn = document.getElementById('btnMusic');
+    btn.querySelector('span').textContent = on ? 'Müzik' : 'Sessiz';
+    btn.querySelector('.wave').style.opacity = on ? '1' : '0.2';
     clearTimeout(musicTimer);
     if (on) { ensureAudio(); scheduleNote(); }
   }
@@ -1678,18 +1870,25 @@
         if (!e) continue;
         let fg = e.fg, bg = e.bg;
         if (e.tw || flashing) {
-          let k = 1.22, kb = 0.26;
+          let k = e.lay === 'ground' ? 1.05 : 1.22, kb = 0.26;
           if (e.tw) { const s = 1 + e.tw * Math.sin(sec * e.sp + e.ph); k *= s; kb *= s; }
           let r = e.r * k, g = e.g * k, b = e.b * k;
           if (flashing) {
             const f = 1 - age / 0.22;
             r += (255 - r) * f; g += (255 - g) * f; b += (255 - b) * f; kb += 0.4 * f;
           }
-          fg = `rgb(${clamp(r, 0, 255) | 0},${clamp(g, 0, 255) | 0},${clamp(b, 0, 255) | 0})`;
-          bg = `rgb(${clamp(e.r * kb, 0, 255) | 0},${clamp(e.g * kb, 0, 255) | 0},${clamp(e.b * kb, 0, 255) | 0})`;
+          if (e.lay === 'ground') {
+            fg = `rgba(${clamp(r, 0, 255) | 0},${clamp(g, 0, 255) | 0},${clamp(b, 0, 255) | 0},${(e.ga * 0.92).toFixed(2)})`;
+            bg = e.ga > 0.45 ? `rgba(${clamp(e.r * kb, 0, 255) | 0},${clamp(e.g * kb, 0, 255) | 0},${clamp(e.b * kb, 0, 255) | 0},${((e.ga - 0.45) * 0.55).toFixed(2)})` : null;
+          } else {
+            fg = `rgb(${clamp(r, 0, 255) | 0},${clamp(g, 0, 255) | 0},${clamp(b, 0, 255) | 0})`;
+            bg = `rgb(${clamp(e.r * kb, 0, 255) | 0},${clamp(e.g * kb, 0, 255) | 0},${clamp(e.b * kb, 0, 255) | 0})`;
+          }
         }
-        sctx.fillStyle = bg;
-        sctx.fillRect(cell.px, cell.py, cellW + 0.6, cellH + 0.6);
+        if (bg) {
+          sctx.fillStyle = bg;
+          sctx.fillRect(cell.px, cell.py, cellW + 0.6, cellH + 0.6);
+        }
         sctx.fillStyle = fg;
         sctx.fillText(e.ch, cell.px, cell.py);
       }
@@ -1744,8 +1943,23 @@
       bb.clearRect(0, 0, bloomB.width, bloomB.height);
       bb.drawImage(bloomA, 0, 0, bloomB.width, bloomB.height);
 
-      // donmuş göl / buz yansıması (ağacın altında gerçekçi ayna yansıması)
+      // donmuş göl / buz yansıması + zemine yumuşak oturtma gölgesi & kar yatağı
       drawIceReflection(sec);
+      if (t > 2.0) {
+        const treeCx = offX + cols * cellW / 2;
+        const bedVis = clamp((t - 2.0) / 1.8, 0, 1);
+        ctx.save();
+        // geniş temas gölgesi (ağaç ve kutuları zemine oturtur)
+        ctx.translate(treeCx, groundY + 12);
+        ctx.scale(1, 0.16);
+        const sh = ctx.createRadialGradient(0, 0, cols * cellW * 0.1, 0, 0, cols * cellW * 0.52);
+        sh.addColorStop(0, `rgba(1, 3, 9, ${0.72 * bedVis})`);
+        sh.addColorStop(0.65, `rgba(2, 5, 14, ${0.38 * bedVis})`);
+        sh.addColorStop(1, 'rgba(2, 5, 14, 0)');
+        ctx.fillStyle = sh;
+        ctx.beginPath(); ctx.arc(0, 0, cols * cellW * 0.52, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
 
       ctx.globalAlpha = 1;
       ctx.drawImage(scene, 0, 0, W, H);
@@ -1755,11 +1969,46 @@
       ctx.globalAlpha = 0.22; ctx.drawImage(bloomA, 0, 0, W, H);
       ctx.globalAlpha = 0.36; ctx.drawImage(bloomB, 0, 0, W, H);
 
-      // yıldız halesi + ateşlenme dalgası + anamorfik sinema lens parlaması
+      // yıldız halesi + aşağı süzülen altın ışık hüzmesi (god-ray cone) + anamorfik lens parlaması
       if (t > 4.75) {
         const gx = offX + cols * cellW / 2, gy = offY + (92 / VH) * rows * cellH;
         const stAge = t - 4.75;
         const starVis = clamp(stAge / 0.55, 0, 1);
+        const pulse = 0.88 + 0.12 * Math.sin(sec * 2.1);
+
+        // 1) Yıldızdan ağacın üst dallarına ve hediye kapaklarına süzülen yumuşak altın ışık konisi
+        const coneH = rows * cellH * 0.72;
+        const coneW = cols * cellW * 0.44;
+        const cg = ctx.createLinearGradient(gx, gy, gx, gy + coneH);
+        cg.addColorStop(0, `rgba(255, 224, 128, ${0.24 * starVis * pulse})`);
+        cg.addColorStop(0.32, `rgba(255, 208, 105, ${0.11 * starVis * pulse})`);
+        cg.addColorStop(0.75, `rgba(255, 195, 95, ${0.045 * starVis * pulse})`);
+        cg.addColorStop(1, 'rgba(255, 190, 90, 0)');
+        ctx.fillStyle = cg;
+        ctx.beginPath();
+        ctx.moveTo(gx - 10, gy);
+        ctx.lineTo(gx + 10, gy);
+        ctx.lineTo(gx + coneW, gy + coneH);
+        ctx.lineTo(gx - coneW, gy + coneH);
+        ctx.closePath();
+        ctx.fill();
+
+        // 2) Hediye kutularının üst yüzeylerine düşen canlı sıcak ışık yansımaları
+        if (t > 7.5) {
+          const gVis = clamp((t - 7.5) / 1.5, 0, 1) * pulse;
+          const sx = (cols * cellW) / VW, sy = (rows * cellH) / VH;
+          GIFTS.forEach((b, i) => {
+            const bx = offX + (b.x + b.w * 0.52) * sx;
+            const by = offY + (b.y - b.d * 0.2) * sy;
+            const br = b.w * sx * 0.62;
+            const bg = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+            bg.addColorStop(0, `rgba(${b.glow}, ${0.22 * gVis * (0.8 + 0.2 * Math.sin(sec * 2.4 + i))})`);
+            bg.addColorStop(1, `rgba(${b.glow}, 0)`);
+            ctx.fillStyle = bg;
+            ctx.beginPath(); ctx.ellipse(bx, by, br, br * 0.36, 0, 0, Math.PI * 2); ctx.fill();
+          });
+        }
+
         const rr = cols * cellW * (0.105 + 0.014 * Math.sin(sec * 2.2));
         const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, rr);
         g.addColorStop(0, 'rgba(255,215,105,.48)'); g.addColorStop(1, 'rgba(255,205,90,0)');
@@ -1833,12 +2082,13 @@
       ctx.fillRect(-128, -128, W + 256, H + 256);
       ctx.restore();
     }
+    if (ctaShown) positionCta();
     ctx.restore();
     requestAnimationFrame(frame);
   }
 
   let rt;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { resize(); initFestive(); }, 150); });
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { resize(); initFestive(); positionCta(); }, 150); });
   canvas.addEventListener('pointermove', e => {
     targetParX = (e.clientX / W - 0.5) * 2;
     targetParY = (e.clientY / H - 0.5) * 2;
@@ -1853,8 +2103,26 @@
   document.getElementById('btnMusic').addEventListener('click', () => setMusic(!musicOn));
   document.getElementById('btnFw').addEventListener('click', launchGrandSalvo);
   document.getElementById('btnReplay').addEventListener('click', () => {
-    start = performance.now(); lastT = 0; finaleFired = false; buildScene();
+    start = performance.now(); lastT = 0; finaleFired = false; ctaShown = false;
+    document.getElementById('ctaBtn').classList.remove('show');
+    document.getElementById('giftModal').classList.remove('show');
+    buildScene();
   });
+
+  // ---- Hediyeni Aç CTA & Sürpriz Kartı ----
+  const giftModal = document.getElementById('giftModal');
+  document.getElementById('ctaBtn').addEventListener('click', () => {
+    giftModal.classList.add('show');
+    // büyülü arp glissando + kutlama fişeği
+    [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => setTimeout(() => playBell(f, 0.05, 1.4), i * 85));
+    launchFirework(W * 0.3, H * 0.2, true);
+    setTimeout(() => launchFirework(W * 0.72, H * 0.18, true), 260);
+  });
+  document.getElementById('giftClose').addEventListener('click', () => {
+    giftModal.classList.remove('show');
+    launchGrandSalvo();
+  });
+  giftModal.addEventListener('click', e => { if (e.target === giftModal) giftModal.classList.remove('show'); });
 
   // ---- şifre ekranı ----
   const gate = document.getElementById('gate');
