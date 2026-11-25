@@ -58,8 +58,52 @@
     box-shadow: 0 0 18px rgba(245, 200, 95, .28), inset 0 1px 0 rgba(255, 250, 225, .35);
     transform: translateY(-1px);
   }
+  @media (max-width: 640px) {
+    #hud { left: 50%; right: auto; transform: translateX(-50%); top: calc(min(3.2vh, 24px) + 10px); gap: 4px; padding: 4px; }
+    #hud button { padding: 6px 10px; font-size: 10.5px; letter-spacing: .06em; }
+    #ctaBtn { padding: 10px 20px; font-size: 11.5px; }
+  }
+  #titleOverlay {
+    position: fixed; z-index: 6; display: flex; flex-direction: column; align-items: center; text-align: center;
+    pointer-events: none; opacity: 0; transform: translateY(14px);
+    transition: opacity 1.4s ease, transform 1.4s cubic-bezier(.22,1,.36,1);
+    padding: 0 16px; box-sizing: border-box;
+  }
+  #titleOverlay.show { opacity: 1; transform: translateY(0); }
+  #titleOverlay.side { transform: translateY(calc(-50% + 14px)); }
+  #titleOverlay.side.show { transform: translateY(-50%); }
+  .tRule {
+    width: min(170px, 44vw); height: 1px; position: relative;
+    background: linear-gradient(90deg, transparent, rgba(245, 206, 115, .85), transparent);
+  }
+  .tRule.top { margin-bottom: 14px; }
+  .tRule.top::after {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 7px;
+    background: #ffeeb9; transform: translate(-50%, -50%) rotate(45deg);
+    box-shadow: 0 0 10px rgba(255, 224, 145, .9);
+  }
+  .tRule.bot { margin: 14px 0 20px; width: min(140px, 36vw); }
+  .tName {
+    font-family: "Playfair Display", "Cormorant Garamond", Georgia, serif;
+    font-style: italic; font-weight: 700; line-height: 1.08;
+    font-size: clamp(32px, 4.4vw, 60px);
+    background: linear-gradient(125deg, #fff9e6 0%, #f6ca64 38%, #fff0be 68%, #c48a24 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 18px rgba(255, 205, 95, .52));
+  }
+  .tSub {
+    margin-top: 8px;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-style: italic; font-weight: 600; line-height: 1.28; letter-spacing: .04em;
+    font-size: clamp(18px, 2vw, 27px); color: #fbf0d9;
+    text-shadow: 0 0 14px rgba(255, 224, 150, .55), 0 1px 6px rgba(0, 0, 0, .65);
+  }
+  #titleOverlay.bottom .tName { font-size: clamp(24px, 7.2vw, 38px); }
+  #titleOverlay.bottom .tSub { font-size: clamp(16px, 4.6vw, 22px); margin-top: 4px; }
+  #titleOverlay.bottom .tRule.top { margin-bottom: 8px; }
+  #titleOverlay.bottom .tRule.bot { margin: 10px 0 14px; }
   #ctaBtn {
-    position: fixed; z-index: 6; transform: translate(-50%, -50%) translateY(10px);
+    position: relative; pointer-events: auto;
     display: inline-flex; align-items: center; gap: 9px;
     padding: 11px 24px; border-radius: 999px; cursor: pointer;
     font-family: "Cinzel", Georgia, serif; font-size: 12.5px; font-weight: 600;
@@ -68,7 +112,7 @@
     border: 1px solid rgba(252, 218, 132, .58);
     backdrop-filter: blur(12px);
     box-shadow: 0 8px 28px rgba(0, 0, 0, .48), 0 0 24px rgba(245, 198, 92, .24), inset 0 1px 0 rgba(255, 248, 220, .38);
-    opacity: 0; pointer-events: none; transition: opacity 1s ease, transform .8s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, background .25s ease;
+    transition: transform .25s ease, box-shadow .25s ease, background .25s ease, border-color .25s ease;
     overflow: hidden;
   }
   #ctaBtn::after {
@@ -77,12 +121,11 @@
     transform: translateX(-120%); animation: sheen 4.2s infinite ease-in-out;
   }
   @keyframes sheen { 0%, 55% { transform: translateX(-120%); } 100% { transform: translateX(130%); } }
-  #ctaBtn.show { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) translateY(0); }
   #ctaBtn:hover {
     background: linear-gradient(135deg, rgba(250, 210, 110, .38), rgba(195, 138, 36, .42));
     border-color: rgba(255, 236, 175, .92);
     box-shadow: 0 10px 34px rgba(0, 0, 0, .55), 0 0 36px rgba(255, 212, 108, .5), inset 0 1px 0 rgba(255, 252, 235, .55);
-    transform: translate(-50%, -50%) translateY(-2px);
+    transform: translateY(-2px);
   }
   #ctaBtn svg { width: 15px; height: 15px; stroke: #ffe194; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
   #giftModal {
@@ -175,10 +218,16 @@
     <span>Tekrar</span>
   </button>
 </div>
-<button id="ctaBtn" type="button">
-  <svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
-  <span>Hediyeni Aç</span>
-</button>
+<div id="titleOverlay">
+  <div class="tRule top"></div>
+  <div class="tName" id="tName">Eslem’in</div>
+  <div class="tSub" id="tSub">ağacına ulaşmaya<br>hak kazandınız</div>
+  <div class="tRule bot"></div>
+  <button id="ctaBtn" type="button">
+    <svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+    <span>Hediyeni Aç</span>
+  </button>
+</div>
 <div id="giftModal">
   <div id="giftCard">
     <div class="badge">✦ Yılbaşı Sürprizi ✦</div>
@@ -848,39 +897,84 @@
     sctx.clearRect(0, 0, W, H);
   }
 
+  // ---- Performans: önceden çizilmiş parlama sprite önbelleği ----
+  const glowCache = new Map();
+  function getGlow(col) {
+    let sp = glowCache.get(col);
+    if (sp) return sp;
+    sp = document.createElement('canvas');
+    sp.width = 64; sp.height = 64;
+    const gc = sp.getContext('2d');
+    const g = gc.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, `rgba(${col}, 1)`);
+    g.addColorStop(0.35, `rgba(${col}, 0.5)`);
+    g.addColorStop(0.7, `rgba(${col}, 0.14)`);
+    g.addColorStop(1, `rgba(${col}, 0)`);
+    gc.fillStyle = g;
+    gc.fillRect(0, 0, 64, 64);
+    glowCache.set(col, sp);
+    return sp;
+  }
+
+  let animCells = [], treeAllBuilt = false, lastTwinkleMs = 0, sceneDirty = true;
+
   // --------------------------------------------------------------- yerleşim
+  let isMobile = false, titleAnchorY = 0;
   function resize() {
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = window.innerWidth; H = window.innerHeight;
-    for (const c of [canvas, scene]) { c.width = W * DPR; c.height = H * DPR; }
+    isMobile = W < 700 || (H > W * 1.15);
+    DPR = Math.min(window.devicePixelRatio || 1, isMobile ? 1.4 : 1.75);
+    for (const c of [canvas, scene]) { c.width = Math.round(W * DPR); c.height = Math.round(H * DPR); }
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     sctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    bloomA.width = Math.ceil(W / 4); bloomA.height = Math.ceil(H / 4);
-    bloomB.width = Math.ceil(W / 12); bloomB.height = Math.ceil(H / 12);
+    bloomA.width = Math.max(64, Math.ceil(W / (isMobile ? 6 : 4)));
+    bloomA.height = Math.max(64, Math.ceil(H / (isMobile ? 6 : 4)));
+    bloomB.width = Math.max(32, Math.ceil(W / 14));
+    bloomB.height = Math.max(32, Math.ceil(H / 14));
 
     const scaleA = Math.min(W * 0.94 / VW, H * 0.92 / VH);
     sideFree = (W - VW * scaleA) / 2 + 85 * scaleA;
     let scale, shift = 0;
-    if (sideFree > Math.max(250, W * 0.17)) {
+    if (sideFree > Math.max(250, W * 0.17) && W >= 860) {
       layout = 'side'; scale = scaleA; shift = sideFree * 0.22; sideFree += shift;
     } else {
-      layout = 'bottom'; scale = Math.min(W * 0.94 / VW, H * 0.8 / VH);
+      layout = 'bottom';
+      const topSafe = 74, uiSpace = 195;
+      const availH = Math.max(220, H - topSafe - uiSpace - 24);
+      // Hem soldaki hem sağdaki hediye kutularının telefonda tam sığması için 0.98 ölçek
+      scale = Math.min((W * 0.98) / VW, availH / (VH * 0.84));
     }
     const rw = VW * scale, rh = VH * scale;
-    fs = clamp(rh / 128, 5.5, 10);
+    fs = clamp(rh / (isMobile ? 96 : 122), isMobile ? 4.8 : 5.8, 10);
     sctx.font = `bold ${fs}px Menlo, Consolas, "Courier New", monospace`;
     cellW = sctx.measureText('M').width;
     cellH = fs * 1.08;
     cols = Math.floor(rw / cellW); rows = Math.floor(rh / cellH);
     offX = (W - cols * cellW) / 2 + shift;
-    offY = layout === 'side' ? (H - rows * cellH) / 2 : H * 0.015;
+    if (layout === 'side') {
+      offY = (H - rows * cellH) / 2;
+    } else {
+      // Telefon/dikey ekranda ağaç + yazı + butonu ekranın tam dengeli ortasına yerleştir
+      const topSafe = 70;
+      const starTopFrac = 40 / VH, snowBotFrac = 795 / VH;
+      const visualTreeH = rows * cellH * (snowBotFrac - starTopFrac);
+      const uiBlockH = 185;
+      const totalH = visualTreeH + uiBlockH;
+      const startY = Math.max(topSafe, topSafe + (H - topSafe - 36 - totalH) * 0.48);
+      offY = startY - rows * cellH * starTopFrac;
+      titleAnchorY = offY + rows * cellH * snowBotFrac + 18;
+    }
     groundY = offY + rows * cellH * (712 / VH);
     buildBackground();
+    positionTitleOverlay();
 
     snow = [];
-    const n = Math.round(W * H / 2600);
+    const snowDiv = isMobile ? 4200 : 3000;
+    const n = clamp(Math.round(W * H / snowDiv), 45, isMobile ? 95 : 220);
     for (let i = 0; i < n; i++) snow.push(flake(true));
     buildScene();
+    treeAllBuilt = false; sceneDirty = true;
+    animCells = cells.filter(c => c.stack.some(e => e.tw || e.flick));
   }
 
   function flake(anyY) {
@@ -1067,27 +1161,29 @@
       '255, 206, 115', '255, 185, 95', '125, 185, 255',
       '235, 115, 130', '165, 225, 210', '255, 235, 185'
     ];
-    const nb = Math.round(clamp(W / 42, 22, 42));
+    const nb = isMobile ? 14 : Math.round(clamp(W / 50, 18, 30));
     for (let i = 0; i < nb; i++) {
       const large = i < nb * 0.35;
       bokeh.push({
         x: Math.random() * W,
         y: rnd(H * 0.05, groundY + H * 0.06),
-        r: large ? rnd(34, 82) : rnd(10, 28),
-        a: large ? rnd(0.025, 0.065) : rnd(0.04, 0.11),
+        r: large ? rnd(34, 78) : rnd(10, 26),
+        a: large ? rnd(0.03, 0.07) : rnd(0.045, 0.11),
         vx: rnd(-3, 3), vy: rnd(-2.5, 2.5),
         ph: Math.random() * 6.28, sp: rnd(0.35, 0.95),
         col: pick(bokehCols)
       });
     }
 
-    // 8) Sinematik vinyet (kenarları yumuşakça karartır)
+    // 8) Sinematik vinyet + tek seferlik hafif 35mm film greni
     const vig = b.createRadialGradient(W * 0.5, H * 0.48, Math.min(W, H) * 0.3, W * 0.5, H * 0.5, Math.max(W, H) * 0.78);
     vig.addColorStop(0, 'rgba(0,0,0,0)');
     vig.addColorStop(0.7, 'rgba(0,0,0,0.18)');
     vig.addColorStop(1, 'rgba(0,0,0,0.62)');
     b.fillStyle = vig;
     b.fillRect(0, 0, W, H);
+    const gp = b.createPattern(grainCanvas, 'repeat');
+    if (gp) { b.fillStyle = gp; b.fillRect(0, 0, W, H); }
   }
 
   function drawSkyFx(sec, dt, t, fade) {
@@ -1120,7 +1216,7 @@
       ctx.fill();
     }
 
-    // 2) Yumuşak bokeh küreleri
+    // 2) Yumuşak bokeh küreleri (hızlı sprite)
     for (const o of bokeh) {
       o.x += o.vx * dt; o.y += o.vy * dt;
       if (o.x < -o.r) o.x = W + o.r;
@@ -1128,15 +1224,10 @@
       if (o.y < -o.r) o.y = groundY + o.r;
       if (o.y > groundY + H * 0.12 + o.r) o.y = -o.r;
       const pulse = 0.65 + 0.35 * Math.sin(sec * o.sp + o.ph);
-      const a = o.a * pulse;
-      const g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
-      g.addColorStop(0, `rgba(${o.col}, ${a * 1.15})`);
-      g.addColorStop(0.55, `rgba(${o.col}, ${a * 0.55})`);
-      g.addColorStop(0.85, `rgba(${o.col}, ${a * 0.18})`);
-      g.addColorStop(1, `rgba(${o.col}, 0)`);
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = o.a * pulse * 1.1;
+      ctx.drawImage(getGlow(o.col), o.x - o.r, o.y - o.r, o.r * 2, o.r * 2);
     }
+    ctx.globalAlpha = 1;
 
     // 3) Ağacın zemine düşen sıcak yansıması (ağaç büyüdükçe güçlenir)
     if (t > 2.2) {
@@ -1182,153 +1273,63 @@
     ctx.restore();
   }
 
-  // ------------------------------------------------------------ Eslem yazısı
+  // ------------------------------------------------------------ Eslem yazısı (DOM katmanı)
   const NAME_T = 11.4;
   let ctaShown = false;
-  function positionCta() {
-    const btn = document.getElementById('ctaBtn');
-    if (!btn) return;
-    const rect = canvas.getBoundingClientRect();
-    const sx = rect.width / W, sy = rect.height / H;
+
+  function positionTitleOverlay() {
+    const ov = document.getElementById('titleOverlay');
+    const tn = document.getElementById('tName');
+    const ts = document.getElementById('tSub');
+    if (!ov) return;
+    ov.classList.remove('side', 'bottom');
     if (layout === 'side') {
-      const cx = sideFree * 0.5;
-      const cy = H * 0.40;
-      const maxW = sideFree * 0.82;
-      const big = clamp(Math.min(maxW * 0.23, H * 0.068), 28, 60);
-      const sub = clamp(big * 0.45, 15, 27);
-      const botY = cy + sub * 3.55;
-      btn.style.left = `${cx * sx}px`;
-      btn.style.top = `${(botY + 38) * sy}px`;
+      ov.classList.add('side');
+      ov.style.left = '0px';
+      ov.style.right = 'auto';
+      ov.style.width = `${sideFree}px`;
+      ov.style.top = `${H * 0.48}px`;
+      tn.textContent = 'Eslem’in';
+      ts.innerHTML = 'ağacına ulaşmaya<br>hak kazandınız';
     } else {
-      const top = offY + rows * cellH * 0.885;
-      const availH = Math.max(100, H - top);
-      btn.style.left = `${(W / 2) * sx}px`;
-      btn.style.top = `${Math.min(rect.height - 54, (top + availH * 0.8) * sy)}px`;
+      ov.classList.add('bottom');
+      ov.style.left = '0px';
+      ov.style.right = '0px';
+      ov.style.width = 'auto';
+      ov.style.top = `${Math.min(H - 195, titleAnchorY)}px`;
+      tn.textContent = 'Eslem’in ağacına';
+      ts.textContent = 'ulaşmaya hak kazandınız';
     }
   }
-  function drawTitle(t, sec, fade) {
+
+  function drawTitle(t, sec) {
     if (t < NAME_T) return;
-    const p = clamp((t - NAME_T) / 2.0, 0, 1);
-    const ease = 1 - Math.pow(1 - p, 3);
-    const drift = (1 - ease) * 14;
-    if (!ctaShown && t >= NAME_T + 0.9) {
+    if (!ctaShown) {
       ctaShown = true;
-      positionCta();
-      document.getElementById('ctaBtn').classList.add('show');
+      positionTitleOverlay();
+      document.getElementById('titleOverlay').classList.add('show');
     }
-
+    // metni çevreleyen hafif yıldız parçacıkları
+    const p = clamp((t - NAME_T) / 1.8, 0, 1);
+    const cx = layout === 'side' ? sideFree * 0.5 : W / 2;
+    const cy = layout === 'side' ? H * 0.47 : Math.min(H - 130, titleAnchorY + 62);
+    const rx = layout === 'side' ? Math.min(sideFree * 0.4, 155) : Math.min(W * 0.44, 165);
+    const ry = layout === 'side' ? 105 : 70;
     ctx.save();
-    ctx.globalAlpha = fade * ease;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    if (layout === 'side') {
-      const cx = sideFree * 0.5;
-      const cy = H * 0.40 + drift;
-      const maxW = sideFree * 0.82;
-      const big = clamp(Math.min(maxW * 0.23, H * 0.068), 28, 60);
-      const sub = clamp(big * 0.45, 15, 27);
-
-      // üst ince altın çizgi + küçük elmas
-      const lw = Math.min(maxW * 0.36, 105) * ease;
-      const topY = cy - big * 1.08;
-      const lg1 = ctx.createLinearGradient(cx - lw, 0, cx + lw, 0);
-      lg1.addColorStop(0, 'rgba(245, 206, 115, 0)');
-      lg1.addColorStop(0.5, 'rgba(245, 206, 115, 0.85)');
-      lg1.addColorStop(1, 'rgba(245, 206, 115, 0)');
-      ctx.fillStyle = lg1;
-      ctx.fillRect(cx - lw, topY, lw * 2, 1);
-      ctx.fillStyle = 'rgba(255, 238, 185, 0.95)';
+    ctx.globalCompositeOperation = 'lighter';
+    const sc = isMobile ? 6 : 10;
+    for (let i = 0; i < sc; i++) {
+      const a = (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(sec * 2.1 + i * 1.7))) * p;
+      const ang = i * 2.39 + 0.3;
+      const sx = cx + Math.cos(ang) * rx;
+      const sy = cy + Math.sin(ang) * ry;
+      const r = (i % 3 === 0 ? 4.2 : 2.8) * a;
+      ctx.fillStyle = `rgba(255, 236, 185, ${a * 0.85})`;
       ctx.beginPath();
-      ctx.moveTo(cx, topY - 4.5); ctx.lineTo(cx + 4.5, topY + 0.5);
-      ctx.lineTo(cx, topY + 5.5); ctx.lineTo(cx - 4.5, topY + 0.5);
-      ctx.closePath(); ctx.fill();
-
-      // "Eslem’in" — şık, yüksek kontrastlı altın italik serif (Türkçe uyumlu)
-      ctx.font = `italic 700 ${big}px "Playfair Display", "Cormorant Garamond", Georgia, serif`;
-      const gg = ctx.createLinearGradient(cx - big * 2.2, cy - big * 0.9, cx + big * 2.2, cy);
-      gg.addColorStop(0, '#fff9e6');
-      gg.addColorStop(0.35, '#f6ca64');
-      gg.addColorStop(0.65, '#fff0be');
-      gg.addColorStop(1, '#c48a24');
-      ctx.shadowColor = 'rgba(255, 205, 95, 0.6)';
-      ctx.shadowBlur = big * 0.45;
-      ctx.fillStyle = gg;
-      ctx.fillText('Eslem’in', cx, cy - big * 0.32);
-      ctx.shadowBlur = 0;
-
-      // "ağacına ulaşmaya" / "hak kazandınız" — sıcak şampanya serif + altın parlama
-      ctx.font = `italic 600 ${sub}px "Cormorant Garamond", Georgia, serif`;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = `${sub * 0.05}px`;
-      const sg = ctx.createLinearGradient(cx - maxW * 0.4, cy + sub * 0.8, cx + maxW * 0.4, cy + sub * 2.8);
-      sg.addColorStop(0, '#fff9ec');
-      sg.addColorStop(0.5, '#f7e5bf');
-      sg.addColorStop(1, '#fff9ec');
-      ctx.shadowColor = 'rgba(255, 224, 150, 0.58)';
-      ctx.shadowBlur = 16;
-      ctx.fillStyle = sg;
-      ctx.fillText('ağacına ulaşmaya', cx, cy + sub * 1.15);
-      ctx.fillText('hak kazandınız', cx, cy + sub * 2.45);
-      ctx.shadowBlur = 0;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-
-      // alt ince altın çizgi
-      const botY = cy + sub * 3.55;
-      ctx.fillStyle = lg1;
-      ctx.fillRect(cx - lw * 0.85, botY, lw * 1.7, 1);
-
-      // tüm metni çevreleyen zarif yıldız parçacıkları
-      ctx.globalCompositeOperation = 'lighter';
-      for (let i = 0; i < 12; i++) {
-        const a = (0.3 + 0.7 * (0.5 + 0.5 * Math.sin(sec * 2.1 + i * 1.7))) * ease;
-        const ang = i * 2.39 + 0.3;
-        const sx = cx + Math.cos(ang) * Math.min(maxW * 0.48, 155);
-        const sy = cy + sub * 0.9 + Math.sin(ang) * (big * 1.55);
-        const r = clamp(big * (i % 3 === 0 ? 0.075 : 0.048), 2.2, 5.0) * a;
-        ctx.fillStyle = `rgba(255, 236, 185, ${a * 0.85})`;
-        ctx.beginPath();
-        ctx.moveTo(sx, sy - r * 2); ctx.lineTo(sx + r * 0.25, sy - r * 0.25); ctx.lineTo(sx + r * 2, sy);
-        ctx.lineTo(sx + r * 0.25, sy + r * 0.25); ctx.lineTo(sx, sy + r * 2); ctx.lineTo(sx - r * 0.25, sy + r * 0.25);
-        ctx.lineTo(sx - r * 2, sy); ctx.lineTo(sx - r * 0.25, sy - r * 0.25); ctx.closePath(); ctx.fill();
-      }
-    } else {
-      const top = offY + rows * cellH * 0.885;
-      const availH = Math.max(100, H - top);
-      const cx = W / 2;
-      const cy = top + availH * 0.3 + drift;
-      const big = clamp(Math.min(W * 0.072, availH * 0.28), 22, 42);
-      const sub = clamp(big * 0.58, 14, 23);
-
-      // üst ince çizgi
-      const lw = Math.min(W * 0.22, 110) * ease;
-      const lg1 = ctx.createLinearGradient(cx - lw, 0, cx + lw, 0);
-      lg1.addColorStop(0, 'rgba(245, 206, 115, 0)');
-      lg1.addColorStop(0.5, 'rgba(245, 206, 115, 0.78)');
-      lg1.addColorStop(1, 'rgba(245, 206, 115, 0)');
-      ctx.fillStyle = lg1;
-      ctx.fillRect(cx - lw, cy - big * 0.95, lw * 2, 1);
-
-      // "Eslem’in ağacına"
-      ctx.font = `italic 700 ${big}px "Playfair Display", "Cormorant Garamond", Georgia, serif`;
-      const gg = ctx.createLinearGradient(cx - W * 0.25, cy - big * 0.5, cx + W * 0.25, cy);
-      gg.addColorStop(0, '#fff8e2'); gg.addColorStop(0.5, '#f4c762'); gg.addColorStop(1, '#c8922c');
-      ctx.shadowColor = 'rgba(255, 205, 100, 0.55)';
-      ctx.shadowBlur = big * 0.4;
-      ctx.fillStyle = gg;
-      ctx.fillText('Eslem’in ağacına', cx, cy - sub * 0.45);
-      ctx.shadowBlur = 0;
-
-      // "ulaşmaya hak kazandınız"
-      ctx.font = `italic 600 ${sub}px "Cormorant Garamond", Georgia, serif`;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = `${sub * 0.05}px`;
-      ctx.shadowColor = 'rgba(255, 224, 150, 0.55)';
-      ctx.shadowBlur = 14;
-      ctx.fillStyle = '#faf0d7';
-      ctx.fillText('ulaşmaya hak kazandınız', cx, cy + sub * 0.95);
-      ctx.shadowBlur = 0;
-      if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+      ctx.moveTo(sx, sy - r * 2); ctx.lineTo(sx + r * 0.25, sy - r * 0.25); ctx.lineTo(sx + r * 2, sy);
+      ctx.lineTo(sx + r * 0.25, sy + r * 0.25); ctx.lineTo(sx, sy + r * 2); ctx.lineTo(sx - r * 0.25, sy + r * 0.25);
+      ctx.lineTo(sx - r * 2, sy); ctx.lineTo(sx - r * 0.25, sy - r * 0.25); ctx.closePath(); ctx.fill();
     }
-
     ctx.restore();
   }
 
@@ -1353,7 +1354,9 @@
     const scaleX = (cols * cellW) / VW;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    for (const o of orbiters) {
+    const limit = isMobile ? 24 : orbiters.length;
+    for (let i = 0; i < limit; i++) {
+      const o = orbiters[i];
       if (!front) {
         o.u = (o.u + dt * 0.055) % 1;
         o.ang += dt * o.sp * 1.4;
@@ -1367,13 +1370,9 @@
       const edgeFade = Math.sin(o.u * Math.PI);
       const tw = 0.55 + 0.45 * Math.sin(sec * 3.5 + o.ph);
       const a = appear * edgeFade * tw * (front ? 0.85 : 0.35);
-      const r = o.sz * (front ? 1.25 : 0.85);
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3.8);
-      g.addColorStop(0, `rgba(${o.col},${a})`);
-      g.addColorStop(0.4, `rgba(${o.col},${a * 0.4})`);
-      g.addColorStop(1, `rgba(${o.col},0)`);
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(x, y, r * 3.8, 0, Math.PI * 2); ctx.fill();
+      const r = o.sz * (front ? 1.25 : 0.85) * 3.8;
+      ctx.globalAlpha = a;
+      ctx.drawImage(getGlow(o.col), x - r, y - r, r * 2, r * 2);
     }
     ctx.restore();
   }
@@ -1382,9 +1381,11 @@
   const lanterns = [], embers = [];
   function initFestive() {
     lanterns.length = 0;
-    for (let i = 0; i < 16; i++) lanterns.push(makeLantern(true));
+    const nl = isMobile ? 9 : 14;
+    for (let i = 0; i < nl; i++) lanterns.push(makeLantern(true));
     embers.length = 0;
-    for (let i = 0; i < 38; i++) embers.push(makeEmber(true));
+    const ne = isMobile ? 16 : 30;
+    for (let i = 0; i < ne; i++) embers.push(makeEmber(true));
   }
   function makeLantern(anyY) {
     const z = Math.random();
@@ -1407,6 +1408,7 @@
   }
   function drawLanterns(sec, dt, t) {
     const vis = unlocked ? clamp((t - 1.5) / 3.0, 0.2, 1) : 0.35;
+    const haloSp = getGlow('255,180,80');
     ctx.save();
     for (const l of lanterns) {
       l.y -= l.vy * dt;
@@ -1414,23 +1416,19 @@
       const x = l.x + Math.sin(sec * l.fr + l.ph) * l.amp;
       const flick = 0.85 + 0.15 * Math.sin(sec * 5.2 + l.ph);
       const a = l.a * vis * flick;
-      // yumuşak sıcak hale
+      const hr = l.s * 3.8;
       ctx.globalCompositeOperation = 'lighter';
-      const g = ctx.createRadialGradient(x, l.y, 0, x, l.y, l.s * 3.8);
-      g.addColorStop(0, `rgba(255,195,95,${a * 0.65})`);
-      g.addColorStop(0.45, `rgba(255,140,55,${a * 0.22})`);
-      g.addColorStop(1, 'rgba(255,120,40,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(x, l.y, l.s * 3.8, 0, Math.PI * 2); ctx.fill();
-      // fener gövdesi
+      ctx.globalAlpha = a * 0.65;
+      ctx.drawImage(haloSp, x - hr, l.y - hr, hr * 2, hr * 2);
       ctx.globalCompositeOperation = 'source-over';
-      const lg = ctx.createLinearGradient(x, l.y - l.s, x, l.y + l.s * 0.8);
-      lg.addColorStop(0, `rgba(255,145,55,${a * 0.85})`);
-      lg.addColorStop(0.6, `rgba(255,210,115,${a})`);
-      lg.addColorStop(1, `rgba(255,248,210,${a})`);
-      ctx.fillStyle = lg;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#ffcf73';
       ctx.beginPath();
-      ctx.ellipse(x, l.y, l.s * 0.55, l.s * 0.78, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, l.y, l.s * 0.52, l.s * 0.74, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff5d0';
+      ctx.beginPath();
+      ctx.arc(x, l.y + l.s * 0.2, l.s * 0.28, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -1445,12 +1443,9 @@
       e.x += (e.vx + Math.sin(sec * 1.4 + e.ph) * 14) * dt;
       if (e.y < offY - 20) Object.assign(e, makeEmber(false));
       const tw = 0.5 + 0.5 * Math.sin(sec * 4.5 + e.ph);
-      const a = e.a * vis * tw;
-      const g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.s * 3);
-      g.addColorStop(0, `rgba(${e.col},${a})`);
-      g.addColorStop(1, `rgba(${e.col},0)`);
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(e.x, e.y, e.s * 3, 0, Math.PI * 2); ctx.fill();
+      const r = e.s * 3;
+      ctx.globalAlpha = e.a * vis * tw;
+      ctx.drawImage(getGlow(e.col), e.x - r, e.y - r, r * 2, r * 2);
     }
     ctx.restore();
   }
@@ -1534,42 +1529,33 @@
     fadeG.addColorStop(1, 'rgba(1,2,6,0.94)');
     ctx.fillStyle = fadeG;
     ctx.fillRect(0, groundY, W, H - groundY);
-    // buzda yatay mikro parıltılar
+    // buzda yatay mikro parıltılar (hızlı)
     ctx.globalCompositeOperation = 'lighter';
     const treeCx = offX + cols * cellW / 2;
-    for (let i = 0; i < 14; i++) {
-      const yy = groundY + 8 + i * ((H - groundY) / 16);
-      const ww = cols * cellW * (0.48 - i * 0.025) * (0.85 + 0.15 * Math.sin(sec * 1.3 + i));
-      if (ww <= 10) continue;
-      const sg = ctx.createLinearGradient(treeCx - ww, yy, treeCx + ww, yy);
-      sg.addColorStop(0, 'rgba(255,220,145,0)');
-      sg.addColorStop(0.5, `rgba(255,225,165,${(1 - i / 14) * 0.065})`);
-      sg.addColorStop(1, 'rgba(255,220,145,0)');
-      ctx.fillStyle = sg;
-      ctx.fillRect(treeCx - ww + Math.sin(sec * 0.9 + i * 1.7) * 8, yy, ww * 2, 1.3);
+    const shimmerSp = getGlow('255,225,165');
+    for (let i = 0; i < 6; i++) {
+      const yy = groundY + 10 + i * ((H - groundY) / 8);
+      const ww = cols * cellW * (0.46 - i * 0.05) * (0.88 + 0.12 * Math.sin(sec * 1.3 + i));
+      if (ww <= 12) continue;
+      ctx.globalAlpha = (1 - i / 6) * 0.1;
+      ctx.drawImage(shimmerSp, treeCx - ww + Math.sin(sec * 0.9 + i * 1.7) * 8, yy - 1.5, ww * 2, 3);
     }
     ctx.restore();
   }
 
-  // Zeminde ağır akan kış sisi
+  // Zeminde ağır akan kış sisi (hızlı sprite)
   function drawGroundFog(sec) {
+    const fogSp = getGlow('115,155,215');
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < 4; i++) {
+    const nf = isMobile ? 2 : 3;
+    for (let i = 0; i < nf; i++) {
       const drift = ((sec * (10 + i * 4) + i * 320) % (W + 520)) - 260;
       const ry = 36 + i * 16;
       const rx = 220 + i * 95;
       const y = groundY - 8 + i * 14;
-      const g = ctx.createRadialGradient(drift, y, 0, drift, y, rx);
-      g.addColorStop(0, `rgba(115,155,215,${0.042 - i * 0.006})`);
-      g.addColorStop(0.6, `rgba(80,120,185,${0.018})`);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.save();
-      ctx.translate(drift, y);
-      ctx.scale(1, ry / rx);
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
+      ctx.globalAlpha = 0.055 - i * 0.008;
+      ctx.drawImage(fogSp, drift - rx, y - ry, rx * 2, ry * 2);
     }
     ctx.restore();
   }
@@ -1846,6 +1832,7 @@
 
   // ------------------------------------------------------------------ döngü
   function frame(now) {
+    if (W !== window.innerWidth || H !== window.innerHeight) { resize(); initFestive(); }
     const dt = Math.min(0.05, (now - lastNow) / 1000); lastNow = now;
     const sec = now / 1000;
     // Tekrar düğmesine basılmadıkça baştan başlamaz!
@@ -1853,44 +1840,54 @@
     lastT = t;
 
     if (unlocked) {
-      sctx.textBaseline = 'top';
-      sctx.font = `bold ${fs}px Menlo, Consolas, "Courier New", monospace`;
-      for (const cell of cells) {
-        const st = cell.stack;
-        let idx = -1;
-        for (let i = st.length - 1; i >= 0; i--) if (t >= st[i].t0) { idx = i; break; }
-        const e = idx >= 0 ? st[idx] : null;
-        const age = e ? t - e.t0 : 9;
-        const flashing = age < 0.22;
-        let dirty = idx !== cell.cur || flashing || cell.fl || (e && e.tw);
-        if (e && e.flick && Math.random() < 0.0025) { e.ch = pick(RAMP.tree.slice(6)); dirty = true; }
-        if (!dirty) continue;
-        cell.cur = idx; cell.fl = flashing;
-        sctx.clearRect(cell.px, cell.py, cellW + 0.6, cellH + 0.6);
-        if (!e) continue;
-        let fg = e.fg, bg = e.bg;
-        if (e.tw || flashing) {
-          let k = e.lay === 'ground' ? 1.05 : 1.22, kb = 0.26;
-          if (e.tw) { const s = 1 + e.tw * Math.sin(sec * e.sp + e.ph); k *= s; kb *= s; }
-          let r = e.r * k, g = e.g * k, b = e.b * k;
-          if (flashing) {
-            const f = 1 - age / 0.22;
-            r += (255 - r) * f; g += (255 - g) * f; b += (255 - b) * f; kb += 0.4 * f;
+      const doTwinkle = (now - lastTwinkleMs) > (isMobile ? 55 : 40);
+      if (doTwinkle) lastTwinkleMs = now;
+      const list = treeAllBuilt ? (doTwinkle ? animCells : null) : cells;
+      if (list) {
+        sctx.textBaseline = 'top';
+        sctx.font = `bold ${fs}px Menlo, Consolas, "Courier New", monospace`;
+        let anyUpdated = false;
+        for (let ci = 0; ci < list.length; ci++) {
+          const cell = list[ci];
+          const st = cell.stack;
+          let idx = -1;
+          for (let i = st.length - 1; i >= 0; i--) if (t >= st[i].t0) { idx = i; break; }
+          const e = idx >= 0 ? st[idx] : null;
+          const age = e ? t - e.t0 : 9;
+          const flashing = age < 0.22;
+          let dirty = idx !== cell.cur || flashing || cell.fl || (e && e.tw && doTwinkle);
+          if (e && e.flick && doTwinkle && Math.random() < 0.004) { e.ch = pick(RAMP.tree.slice(6)); dirty = true; }
+          if (!dirty) continue;
+          anyUpdated = true;
+          cell.cur = idx; cell.fl = flashing;
+          sctx.clearRect(cell.px, cell.py, cellW + 0.6, cellH + 0.6);
+          if (!e) continue;
+          let fg = e.fg, bg = e.bg;
+          if (e.tw || flashing) {
+            let k = e.lay === 'ground' ? 1.05 : 1.22, kb = 0.26;
+            if (e.tw) { const s = 1 + e.tw * Math.sin(sec * e.sp + e.ph); k *= s; kb *= s; }
+            let r = e.r * k, g = e.g * k, b = e.b * k;
+            if (flashing) {
+              const f = 1 - age / 0.22;
+              r += (255 - r) * f; g += (255 - g) * f; b += (255 - b) * f; kb += 0.4 * f;
+            }
+            if (e.lay === 'ground') {
+              fg = `rgba(${clamp(r, 0, 255) | 0},${clamp(g, 0, 255) | 0},${clamp(b, 0, 255) | 0},${(e.ga * 0.92).toFixed(2)})`;
+              bg = e.ga > 0.45 ? `rgba(${clamp(e.r * kb, 0, 255) | 0},${clamp(e.g * kb, 0, 255) | 0},${clamp(e.b * kb, 0, 255) | 0},${((e.ga - 0.45) * 0.55).toFixed(2)})` : null;
+            } else {
+              fg = `rgb(${clamp(r, 0, 255) | 0},${clamp(g, 0, 255) | 0},${clamp(b, 0, 255) | 0})`;
+              bg = `rgb(${clamp(e.r * kb, 0, 255) | 0},${clamp(e.g * kb, 0, 255) | 0},${clamp(e.b * kb, 0, 255) | 0})`;
+            }
           }
-          if (e.lay === 'ground') {
-            fg = `rgba(${clamp(r, 0, 255) | 0},${clamp(g, 0, 255) | 0},${clamp(b, 0, 255) | 0},${(e.ga * 0.92).toFixed(2)})`;
-            bg = e.ga > 0.45 ? `rgba(${clamp(e.r * kb, 0, 255) | 0},${clamp(e.g * kb, 0, 255) | 0},${clamp(e.b * kb, 0, 255) | 0},${((e.ga - 0.45) * 0.55).toFixed(2)})` : null;
-          } else {
-            fg = `rgb(${clamp(r, 0, 255) | 0},${clamp(g, 0, 255) | 0},${clamp(b, 0, 255) | 0})`;
-            bg = `rgb(${clamp(e.r * kb, 0, 255) | 0},${clamp(e.g * kb, 0, 255) | 0},${clamp(e.b * kb, 0, 255) | 0})`;
+          if (bg) {
+            sctx.fillStyle = bg;
+            sctx.fillRect(cell.px, cell.py, cellW + 0.6, cellH + 0.6);
           }
+          sctx.fillStyle = fg;
+          sctx.fillText(e.ch, cell.px, cell.py);
         }
-        if (bg) {
-          sctx.fillStyle = bg;
-          sctx.fillRect(cell.px, cell.py, cellW + 0.6, cellH + 0.6);
-        }
-        sctx.fillStyle = fg;
-        sctx.fillText(e.ch, cell.px, cell.py);
+        if (anyUpdated) sceneDirty = true;
+        if (!treeAllBuilt && t > 13.8) treeAllBuilt = true;
       }
 
       if (!finaleFired && t >= NAME_T) {
@@ -1937,11 +1934,14 @@
     drawOrbiters(sec, dt, t, 1, false);
 
     if (unlocked) {
-      const ba = bloomA.getContext('2d'), bb = bloomB.getContext('2d');
-      ba.clearRect(0, 0, bloomA.width, bloomA.height);
-      ba.drawImage(scene, 0, 0, bloomA.width, bloomA.height);
-      bb.clearRect(0, 0, bloomB.width, bloomB.height);
-      bb.drawImage(bloomA, 0, 0, bloomB.width, bloomB.height);
+      if (sceneDirty) {
+        const ba = bloomA.getContext('2d'), bb = bloomB.getContext('2d');
+        ba.clearRect(0, 0, bloomA.width, bloomA.height);
+        ba.drawImage(scene, 0, 0, bloomA.width, bloomA.height);
+        bb.clearRect(0, 0, bloomB.width, bloomB.height);
+        bb.drawImage(bloomA, 0, 0, bloomB.width, bloomB.height);
+        sceneDirty = false;
+      }
 
       // donmuş göl / buz yansıması + zemine yumuşak oturtma gölgesi & kar yatağı
       drawIceReflection(sec);
@@ -2050,7 +2050,8 @@
     if (unlocked) drawTitle(t, sec, 1);
     updateFireworks(dt, sec, wind);
 
-    // kar (derinlikli + rüzgar + ön plan paralaks)
+    // kar (derinlikli + rüzgar + ön plan paralaks — hızlı yuvarlak sprite)
+    const snowSp = getGlow('242,248,255');
     ctx.save();
     ctx.translate(parX * 14, parY * 8);
     for (const f of snow) {
@@ -2060,35 +2061,17 @@
       if (f.x < -20) f.x = W + 20;
       if (f.x > W + 20) f.x = -20;
       const x = f.x + Math.sin(sec * f.fr + f.ph) * f.amp;
-      if (f.soft) {
-        const rg = ctx.createRadialGradient(x, f.y, 0, x, f.y, f.s * 2.3);
-        rg.addColorStop(0, `rgba(242,248,255,${f.a * 0.78})`);
-        rg.addColorStop(1, 'rgba(235,244,255,0)');
-        ctx.fillStyle = rg;
-        ctx.beginPath(); ctx.arc(x, f.y, f.s * 2.3, 0, Math.PI * 2); ctx.fill();
-      } else {
-        ctx.fillStyle = `rgba(240,246,255,${Math.min(1, f.a * 1.15)})`;
-        ctx.beginPath(); ctx.arc(x, f.y, f.s * 0.8, 0, Math.PI * 2); ctx.fill();
-      }
+      const r = f.soft ? f.s * 2.3 : f.s * 1.45;
+      ctx.globalAlpha = f.soft ? f.a * 0.78 : Math.min(1, f.a * 1.15);
+      ctx.drawImage(snowSp, x - r, f.y - r, r * 2, r * 2);
     }
     ctx.restore();
-
-    // 35mm sinema film greni (çok hafif doku)
-    if (!grainPat) grainPat = ctx.createPattern(grainCanvas, 'repeat');
-    if (grainPat) {
-      ctx.save();
-      ctx.translate(((sec * 90) | 0) % 128, ((sec * 65) | 0) % 128);
-      ctx.fillStyle = grainPat;
-      ctx.fillRect(-128, -128, W + 256, H + 256);
-      ctx.restore();
-    }
-    if (ctaShown) positionCta();
     ctx.restore();
     requestAnimationFrame(frame);
   }
 
   let rt;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { resize(); initFestive(); positionCta(); }, 150); });
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { resize(); initFestive(); }, 150); });
   canvas.addEventListener('pointermove', e => {
     targetParX = (e.clientX / W - 0.5) * 2;
     targetParY = (e.clientY / H - 0.5) * 2;
@@ -2104,9 +2087,11 @@
   document.getElementById('btnFw').addEventListener('click', launchGrandSalvo);
   document.getElementById('btnReplay').addEventListener('click', () => {
     start = performance.now(); lastT = 0; finaleFired = false; ctaShown = false;
-    document.getElementById('ctaBtn').classList.remove('show');
+    treeAllBuilt = false; sceneDirty = true;
+    document.getElementById('titleOverlay').classList.remove('show');
     document.getElementById('giftModal').classList.remove('show');
     buildScene();
+    animCells = cells.filter(c => c.stack.some(e => e.tw || e.flick));
   });
 
   // ---- Hediyeni Aç CTA & Sürpriz Kartı ----
